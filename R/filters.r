@@ -1,51 +1,5 @@
 ## FILTERS ##
 
-
-
-ssatrend.jorge <- function(x,window=length(x)/2,Tmin=0,Tmax=1e6) 
-{ # Obtain the singular-sprectrum trend of a time series
-  # (not finished yet!)
-
-  x.decomp = decompSSA(x,window)
-  
-  freqs = x.decomp$freq
-  eigen = x.decomp$U
-  
-  # Output the list of frequencies available
-  # To know the eigenvalue of the lowest frequency
-  i <- which.min(freqs)
-
-# Now we search the eigenvectors for the one representing the trend.
-  e = x.decomp$U
-  indx = which.max(abs(sum(e))/sum(abs(e)))
-# Just need the one vector representing the trend
-  e = e[,indx]
-# Now create a filter using this vector
-  efilt = convolve(e,flipud(e),type="o")
-# Normalize
-  efilt = efilt/sum(efilt)
-  
-# Now we have to pad the original series so that we can get a full trend.
-# We do this by adding values to the start and end based on the linear trend
-# of the first window of values.
-  n = length(x)
-  df = data.frame(x=x[1:window],time=seq(1,window))
-  res = lm(x~time,data=df)
-  left.df = data.frame(time=seq(1-window,0))
-  x.pad = c(predict.lm(res,left.df),x)
-  df = data.frame(x=x[(n-window+1):n],time=seq(1,window))
-  res = lm(x~time,data=df)
-  right.df = data.frame(time=seq(window+1,2*window))
-  x.pad = c(x.pad,predict.lm(res,right.df))
-  
-# Now just run it through the filter
-  result = filter(x.pad,efilt)
-  result = result[(window+1):(length(result)-window)]
-  
-  return(result)
-}
-
-
 #Hamming and Blackman windows from 0..M
 Hamming   <- function( M, x=c(0:M)/M ) { 0.54-0.46*cos(2*pi*x) }
 Blackman  <- function( M, x=c(0:M)/M ) { 0.42-0.5*cos(2*pi*x)+0.08*cos(4*pi*x) }

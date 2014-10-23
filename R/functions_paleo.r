@@ -1,7 +1,6 @@
 
-# Load filter functions
-source("filters.r")
-
+# Depends on filters...
+# source("myr/filters.r")
 
 corr_oceanic = function(time,d18O_ice,time_ocean=time,d18O_ocean)
 {   # Following Jouzel et al. (2003) and Kindler et al. (2014)
@@ -91,40 +90,48 @@ relaxer <- function(time,S,Tmin=0,Tmax=1,taumin=0.1,taumax=1)
   return(T)
 }
 
-calc_stadials <- function(time,d18O,sdfac=1.2,time0=min(time),pc=c(19,0.1))
+calc_stadials <- function(time,d18O,sdfac=1.2,time0=min(time),pc=c(19,0.1),L=2)
 {
     dat = data.frame(time=time,d18O=d18O)
 
     # Get the millennial signal for detrending
-    ii = which(!is.na(dat$d18O))
-    dat$d18Omil =dat$d18O*NA
-    dat$d18Omil[ii] = freqfilter(x=dat$time[ii],y=dat$d18O[ii],pc=pc,bp=T)
+    if (is.null(pc)) {
+        dat$d18Omil = dat$d18O 
+    } else {
+        ii = which(!is.na(dat$d18O))
+        dat$d18Omil =dat$d18O*NA
+        dat$d18Omil[ii] = freqfilter(x=dat$time[ii],y=dat$d18O[ii],pc=pc,bp=TRUE)
+    }
 
     ii = which(is.na(dat$d18Omil))
     dat$d18Omil[ii] = approx(dat$time,dat$d18Omil,xout=dat$time[ii],rule=2)$y
 
-    # Smooth the detrended signal
-    # dat$d18Omil.sm = ssatrend(dat$d18Omil,L=20)   # L=20 for dt=50 => 2 ka smoothing window
-    dt = diff(dat$time[1:2])
-    nt = length(dat$time)
-    sm = loess(dat$d18Omil ~ dat$time,span=(2/dt)/nt)
-    dat$d18Omil.sm = predict(sm)
-    tmp0 = dat$d18Omil.sm 
+    # # Smooth the detrended signal
+    # # dat$d18Omil.sm = ssatrend(dat$d18Omil,L=20)   # L=20 for dt=50 => 2 ka smoothing window
+    # dt = diff(dat$time[1:2])
+    # nt = length(dat$time)
+    # sm = loess(dat$d18Omil ~ dat$time,span=(2/dt)/nt)
+    # dat$d18Omil.sm = predict(sm)
+    # tmp0 = dat$d18Omil.sm 
 
     # Now take 1st derivative
-    dtmp = tmp0*NA
-    n = length(dtmp)
-    dt = diff(dat$time[1:2])
-    dtmp[2:n] = (tmp0[2:n]-tmp0[1:(n-1)])/dt
+    tmp0 = dat$d18Omil
+    dtmp = c(0,diff(tmp0)/diff(dat$time))
     dtmp[1] = dtmp[2] 
     
+    # Smooth the 1st derivative
+    dt = diff(dat$time[1:2])
+    nt = length(dat$time)
+    sm = loess(dtmp ~ dat$time,span=(L/dt)/nt)
+    dtmp = predict(sm)
+
     # Get sd and threshold value
     std  = sd(dtmp,na.rm=T)
     threshhi =  std*sdfac
     threshlo = -std*sdfac
 
     # Generate climate state time series
-    dat$state = numeric(n)+1      # Starting with interstadial
+    dat$state = numeric(length(dat$time))+1      # Starting with interstadial
     new = 0 
     kk = which(dat$time >= time0)
     for (k in kk) {
@@ -139,7 +146,7 @@ calc_stadials <- function(time,d18O,sdfac=1.2,time0=min(time),pc=c(19,0.1))
     }
 
     # Save derivative
-    dat$Dd18Omil.sm = dtmp
+    dat$Dd18Omil = dtmp
 
     # Generate subsurface ocean temp index
     dat$subsurface = relaxer(dat$time,dat$state,taumin=0.1,taumax=1.0)
