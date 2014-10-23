@@ -6,6 +6,10 @@ Author: Alexander Robinson
 Maintainer: Alexander Robinson <ajr225@gmail.com>
 Description: This package contains all of my custom
     R functions.
-Suggests:
-    
 License: GPL-2
+Depends:
+    gpclib,
+    maptools,
+    ncdf,
+    rgeos,
+    Rssa

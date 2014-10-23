@@ -2,6 +2,7 @@
 # Depends on filters...
 # source("myr/filters.r")
 
+#' @export
 corr_oceanic = function(time,d18O_ice,time_ocean=time,d18O_ocean)
 {   # Following Jouzel et al. (2003) and Kindler et al. (2014)
     # Corr_ocean = del[dD_ocean] x (1 + dD_ice)/(1 + del[dD_ocean])
@@ -19,6 +20,7 @@ corr_oceanic = function(time,d18O_ice,time_ocean=time,d18O_ocean)
     return(corr)
 }
 
+#' @export
 convert_dT   = function(time,d18O,dTlgm,lgm=c(-22,-20))
 {   # Convert d18O to temperature anomaly
     
@@ -32,6 +34,7 @@ convert_dT   = function(time,d18O,dTlgm,lgm=c(-22,-20))
     return(dT)
 }
 
+#' @export
 convert_T_kindler = function(time,d18O,alpha,beta,T_pd=241.6,d18O_pd=35.1)
 {   # Convert NGRIP d18O to temperature anomaly following fit parameters for 
     # glacial time period
@@ -41,6 +44,7 @@ convert_T_kindler = function(time,d18O,alpha,beta,T_pd=241.6,d18O_pd=35.1)
     return(T)
 }
 
+#' @export
 convert_T_jouzel = function(time,dD,alpha,beta)
 {   # Convert EPICA Dome C dD to T
     # Jouzel et al. (2007): δD = 6.2 ‰/°C*T+ 5.5‰  == T = (dD-5.5[pmil])1/6.2[pmil/degC]
@@ -54,6 +58,7 @@ convert_T_jouzel = function(time,dD,alpha,beta)
 ## Function to generate subsurface ocean temperature index
 ## When grip is in stadial (state 0), subsurface is warming
 ## When grip is in interstadial (state 1), subsurface is cooling
+#' @export
 relaxer <- function(time,S,Tmin=0,Tmax=1,taumin=0.1,taumax=1)
 { # 
   dt = diff(time[1:2])
@@ -90,6 +95,7 @@ relaxer <- function(time,S,Tmin=0,Tmax=1,taumin=0.1,taumax=1)
   return(T)
 }
 
+#' @export
 calc_stadials <- function(time,d18O,sdfac=1.2,time0=min(time),pc=c(19,0.1),L=2)
 {
     dat = data.frame(time=time,d18O=d18O)
@@ -100,7 +106,7 @@ calc_stadials <- function(time,d18O,sdfac=1.2,time0=min(time),pc=c(19,0.1),L=2)
     } else {
         ii = which(!is.na(dat$d18O))
         dat$d18Omil =dat$d18O*NA
-        dat$d18Omil[ii] = freqfilter(x=dat$time[ii],y=dat$d18O[ii],pc=pc,bp=TRUE)
+        dat$d18Omil[ii] = myr::freqfilter(x=dat$time[ii],y=dat$d18O[ii],pc=pc,bp=TRUE)
     }
 
     ii = which(is.na(dat$d18Omil))

@@ -1,4 +1,5 @@
 
+#' @export
 myfigure <- function(fldr=".",file="Rplot",date=TRUE,type="pdf",engine="cairo",
                      width=NULL,height=NULL,units="mm",asp=1,pointsize=12,res=300,
                      cex=1,cex.lab=1,cex.axis=1,bg="white",onefile=TRUE)
@@ -83,7 +84,7 @@ myfigure <- function(fldr=".",file="Rplot",date=TRUE,type="pdf",engine="cairo",
     return(win)
 }
 
-
+#' @export
 mylegend <- function(breaks,col,units="mm",x=c(0,1),y=c(0,1),at=NULL,labels=NULL,
                      xlab="",ylab="",xlim=NULL,ylim=NULL,zlim=range(breaks),
                      cex=1,cex.lab=1,new=TRUE,vertical=TRUE,line=1.8,
@@ -133,11 +134,13 @@ mylegend <- function(breaks,col,units="mm",x=c(0,1),y=c(0,1),at=NULL,labels=NULL
     par(xpd=FALSE)
 }
 
+#' @export
 my.par  <- function(mar=c(3.2,3.3,1,1),xaxs="i",yaxs="i",tcl=0.4,mgp=c(2.5,0.3,0),las=1,...)
 {
   par(...,mar=mar,tcl=tcl,mgp=mgp,las=las,xaxs=xaxs,yaxs=yaxs)
 }
 
+#' @export
 my.axis <- function(side=1,at=NULL,tcl=0.4,mgp=c(2.5,0.25,0),minticks=2,grid=FALSE,...)
 {
   
@@ -173,6 +176,7 @@ my.axis <- function(side=1,at=NULL,tcl=0.4,mgp=c(2.5,0.25,0),minticks=2,grid=FAL
   return(at.min)
 }
 
+#' @export
 my.plot <- function(...,axes=c(1,2,3,4),box=TRUE,grid=TRUE,
                     xlab="",ylab="",xline=1.7,yline=1.9,
                     minticks=2)
@@ -193,6 +197,7 @@ my.plot <- function(...,axes=c(1,2,3,4),box=TRUE,grid=TRUE,
 
 }
 
+#' @export
 plot.blank <- function(mar=NA)   
 { ## plot an empty space, in which text can be added
   def.par <- par(no.readonly=TRUE)

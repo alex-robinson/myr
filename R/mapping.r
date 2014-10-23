@@ -1,13 +1,18 @@
 # For countries and maps
-require(maptools)
+# require(maptools)
 data(wrld_simpl)
-require(gpclib)
+# require(gpclib)
 # require(rgeos)
 gpclibPermit()
+
+#' @export
+wrld180 = wrld_simpl
 wrld360 = nowrapRecenter(wrld_simpl,avoidGEOS=TRUE)
 
+#' @export
 world_countries <- function() return(as.vector(wrld_simpl$NAME))
 
+#' @export
 mask_by_region <- function(lon,lat,region=NULL)
 {   # http://gis.stackexchange.com/questions/75033/given-a-lat-and-lon-identify-if-the-point-is-over-land-or-ocean
 
@@ -19,7 +24,7 @@ mask_by_region <- function(lon,lat,region=NULL)
     points <- expand.grid(lon=lon,lat=lat)
 
     # Determine which points in the grid are inside of the regional polygon
-    ii <- which(point.in.polygon(points[,1],points[,2],region[,1],region[,2]) > 0)
+    ii <- which(sp::point.in.polygon(points[,1],points[,2],region[,1],region[,2]) > 0)
 
     # Make a mask of points inside the region
     mask = array(0,dim=c(length(lon),length(lat)))
@@ -28,6 +33,7 @@ mask_by_region <- function(lon,lat,region=NULL)
     return(mask)
 }
 
+#' @export
 mask_by_country <- function(lon,lat,countries="United States")
 {   # http://gis.stackexchange.com/questions/75033/given-a-lat-and-lon-identify-if-the-point-is-over-land-or-ocean
 
@@ -35,12 +41,12 @@ mask_by_country <- function(lon,lat,countries="United States")
 
     ## Create a SpatialPoints object
     points <- expand.grid(lon, lat)  # Note that I reversed OP's ordering of lat/long
-    pts <- SpatialPoints(points, proj4string=CRS(proj4string(wrld_simpl)))
+    pts <- sp::SpatialPoints(points, proj4string=sp::CRS(sp::proj4string(wrld_simpl)))
 
     ## Find which points fall over land
     qq = wrld_simpl$NAME %in% countries 
 
-    ii <- !is.na(over(pts, wrld_simpl[qq,])$FIPS)
+    ii <- !is.na(sp::over(pts, wrld_simpl[qq,])$FIPS)
 
     mask = array(0,dim=c(length(lon),length(lat)))
     mask[ii] = 1
@@ -48,6 +54,7 @@ mask_by_country <- function(lon,lat,countries="United States")
     return(mask)
 }
 
+#' @export
 my.in.land.grid <- function(lon,lat)
 { 
   countries = world_countries()
@@ -58,6 +65,7 @@ my.in.land.grid <- function(lon,lat)
 
 
 ## Regional indices on Earth
+#' @export
 regional_indices <- function(lon,lat,mask=NULL,file_srex="SREX_regions_adj.txt")
 { # Input vectors of lon and lat, returns grids of pre-defined regions
   
@@ -203,6 +211,7 @@ regional_indices <- function(lon,lat,mask=NULL,file_srex="SREX_regions_adj.txt")
 
 ## Earth grid weighting ##
 ## AREA of grid boxes
+#' @export
 gridarea <- function(lon,lat,Re=6371,method="cos")
 {
   
@@ -247,6 +256,7 @@ gridarea <- function(lon,lat,Re=6371,method="cos")
   return(area)
 }
 
+#' @export
 mean.areawt <- function(var,area,ii=c(1:length(var)),mask=array(TRUE,dim=dim(var)),na.rm=T,...)
 {
 
@@ -270,6 +280,7 @@ mean.areawt <- function(var,area,ii=c(1:length(var)),mask=array(TRUE,dim=dim(var
   return(ave)
 }
 
+#' @export
 sd.areawt <- function(var,area,ii=c(1:length(var)),na.rm=T,normwt=T,...)
 { # Adapted from Hmisc package
   
@@ -298,7 +309,7 @@ sd.areawt <- function(var,area,ii=c(1:length(var)),na.rm=T,normwt=T,...)
   return(std)
 }
 
-
+#' @export
 fliplat <- function(dat,nc)
 { # Reverse the latitude dimension of all relevant variables of a data set
   
@@ -364,6 +375,7 @@ fliplat <- function(dat,nc)
 
 }
 
+#' @export
 lon360to180 <- function(lon)
 {
   # Adjust longitude
@@ -377,6 +389,7 @@ lon360to180 <- function(lon)
   return(lonX)
 }
 
+#' @export
 shiftlons <- function(lon,lon180=TRUE)
 {
     if (lon180 & range(lon,na.rm=TRUE)[2] > 180) {
@@ -409,6 +422,7 @@ shiftlons <- function(lon,lon180=TRUE)
   return(list(lon=lonX,ii=ii))
 }
 
+#' @export
 shiftlon <- function(dat,nc)
 { # Shift longitude from 0:360 => -180:180 for
   # all related variables 
@@ -484,6 +498,7 @@ shiftlon <- function(dat,nc)
 
 }
 
+#' @export
 findpoint <- function(dat,p=c(lat=37.82,lon=-25.73),ebs=3)
 { # Find the nearest grid point corresponding to a lat/lon location
 

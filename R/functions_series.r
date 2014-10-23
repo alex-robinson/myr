@@ -5,8 +5,9 @@
 
 
 ### NON-LINEAR TRENDS ####
-require(Rssa)
+#require(Rssa)
 
+#' @export
 make_gaps <- function(y,per=0.2)
 {
   n = length(y)
@@ -17,6 +18,7 @@ make_gaps <- function(y,per=0.2)
   return(y)
 }
 
+#' @export
 get_gaps <- function(y,gapmax=10,consecmin=5)
 {
   
@@ -90,6 +92,7 @@ get_gaps <- function(y,gapmax=10,consecmin=5)
   return(segments)
 }
 
+#' @export
 test_gaps <- function(y)
 {
   y0 = y
@@ -105,8 +108,10 @@ test_gaps <- function(y)
 }
 
 # Just return y values from approx
+#' @export
 approxy <- function(...) approx(...)$y
 
+#' @export
 series_fill <- function(y)
 { # Fill in the missing values of the time series 
   # with a linear interpolation
@@ -135,6 +140,7 @@ series_fill <- function(y)
   return(list(y=ynew,ii=ii))
 }
 
+#' @export
 max_period <- function(y)
 { # Returns the period of maximum spectral power of a time series (or several)
   
@@ -180,6 +186,7 @@ add_buffer.internal <- function(y,nrep=1,nbuff=floor(length(y)*0.2),scale=0.5,ty
   return(y1)
 }
 
+#' @export
 add_buffer <- function(y,nrep=1,nbuff=floor(length(y)*0.2),scale=0.5,type="mean")
 { # Now can handle 2D time series (nm X nt)
   ### Modify the time series to facilitate spectral analysis over the whole time series:
@@ -200,6 +207,7 @@ add_buffer <- function(y,nrep=1,nbuff=floor(length(y)*0.2),scale=0.5,type="mean"
   return(list(y=y1,i0=i0,i1=i1)) #,y00a=y00a,y11a=y11a,x0=x0,x1=x1))
 }
 
+#' @export
 test_buffer <- function(y,nbuff=13,nrep=2)
 {
   ny = length(y)
@@ -221,6 +229,7 @@ test_buffer <- function(y,nbuff=13,nrep=2)
   lines(c(x,x1)+(ny-nbuff),predict(lm(y11a~x),newdata=list(x=c(x,x1))),col=2)
 }
 
+#' @export
 ssatrend.auto <- function(y,pmin=30,frequency=12,pbuff=0,L=NULL,fill=TRUE,smooth=TRUE,
                           Fmax=8,old=F)
 { # Compute the trend from SSA decomposition
@@ -278,13 +287,13 @@ ssatrend.auto <- function(y,pmin=30,frequency=12,pbuff=0,L=NULL,fill=TRUE,smooth
   # First smooth the trend via a very small window
   # to elimate any noise problems
   if (smooth) {
-    ssa0 = ssa(y1,L=1/dy)
-    y1 = reconstruct(ssa0,groups=list(c(1)))$F1
+    ssa0 = Rssa::ssa(y1,L=1/dy)
+    y1 = Rssa::reconstruct(ssa0,groups=list(c(1)))$F1
   }
 
   # Get a new ssa object and reconstruct the first 12 eigen vectors
-  ssa = ssa(y1,L=L)
-  new = reconstruct(ssa,groups=as.list(c(1:Fmax)))
+  ssa = Rssa::ssa(y1,L=L)
+  new = Rssa::reconstruct(ssa,groups=as.list(c(1:Fmax)))
   
   # Convert list of eigenvectors to a data.frame of time series
   new = as.data.frame(new)
@@ -311,6 +320,7 @@ ssatrend.auto <- function(y,pmin=30,frequency=12,pbuff=0,L=NULL,fill=TRUE,smooth
   return(trend)
 }
 
+#' @export
 ssatrend.fill <- function(y,pmin=30,frequency=12,L=NULL,pbuff=0,smooth=T,
                           gapmax=(pmin*frequency)*0.5,consecmin=(10*frequency))
 { # Perform ssatrend by consecutive segments of real data in a time series
@@ -338,6 +348,7 @@ ssatrend.fill <- function(y,pmin=30,frequency=12,L=NULL,pbuff=0,smooth=T,
   return(trend)
 }
 
+#' @export
 ssatrend.simple <- function(y,L=15,eigen=1,fill=TRUE,nbuff=11,buffer="linear",svd_method=NULL)
 { # Compute the trend from SSA decomposition
   
@@ -374,8 +385,8 @@ ssatrend.simple <- function(y,L=15,eigen=1,fill=TRUE,nbuff=11,buffer="linear",sv
   
   # Get a new ssa object and
   # Reconstruct the first several eigen vectors
-  ssa = ssa(y1,L=L,svd_method=svd_method)
-  new = reconstruct(ssa,groups=as.list(eigen))
+  ssa = Rssa::ssa(y1,L=L,svd_method=svd_method)
+  new = Rssa::reconstruct(ssa,groups=as.list(eigen))
   
   # Sum the eigen vectors of interest
   trend = apply(as.data.frame(new[eigen]),1,sum)
@@ -395,6 +406,7 @@ ssatrend.simple <- function(y,L=15,eigen=1,fill=TRUE,nbuff=11,buffer="linear",sv
   return(trend)
 }
 
+#' @export
 ssatrend2D.simple <- function(y,L=15,eigen=1,fill=TRUE,nbuff=11,buffer="linear",svd_method=NULL)
 { # Compute the trend from SSA decomposition
   
@@ -433,8 +445,8 @@ ssatrend2D.simple <- function(y,L=15,eigen=1,fill=TRUE,nbuff=11,buffer="linear",
   # Reconstruct the first several eigen vectors
   # svd_method = NULL, let ssa decide
   # svd_method = "propack", for small values of L 
-  ssa = ssa(y1,kind="2d-ssa",L=c(1,L),neig=2,svd_method=svd_method)
-  new = reconstruct(ssa,groups=as.list(1,eigen))
+  ssa = Rssa::ssa(y1,kind="2d-ssa",L=c(1,L),neig=2,svd_method=svd_method)
+  new = Rssa::reconstruct(ssa,groups=as.list(1,eigen))
   
   # Sum the eigen vectors of interest
   trend = new$F1
@@ -455,6 +467,7 @@ ssatrend2D.simple <- function(y,L=15,eigen=1,fill=TRUE,nbuff=11,buffer="linear",
   return(trend)
 }
 
+#' @export
 ssatrend.fill.simple <- function(y,L=15,nbuff=11,buffer="linear",svd_method=NULL,
                                  gapmax=L,consecmin=L+5,twoD=FALSE)
 { # Perform ssatrend by consecutive segments of real data in a time series
@@ -494,11 +507,13 @@ ssatrend.fill.simple <- function(y,L=15,nbuff=11,buffer="linear",svd_method=NULL
 }
 
 # Use the wrapper ssatrend.fill as the default method!
+#' @export
 ssatrend = ssatrend.fill.simple
 
 ### END NON-LINEAR TRENDS ####
 
 ## Spectra
+#' @export
 my.spectrum <- function(y,...,x.labs=c(5,10,15,20,30,50,100,500))
 {
   sp = spectrum(y,plot=F)
@@ -517,9 +532,13 @@ my.spectrum <- function(y,...,x.labs=c(5,10,15,20,30,50,100,500))
 ## DIM'S C++ FUNCTIONS (translated)
 
 # Error function (and complementary error function)
+#' @export
 erf  <- function(x) 2 * pnorm(x*sqrt(2)) - 1
+
+#' @export
 erfc <- function(x) 2 * pnorm(x*sqrt(2), lower = FALSE)
 
+#' @export
 pdf_dim <- function(x,t,sigma,mu1,mu0 )
 { # Intermediate function for p_x()
   pdf0 = 1/sqrt(2*pi*sigma^2) * exp( -(x-mu0-mu1*t)^2 / (2*sigma^2) )
@@ -527,12 +546,14 @@ pdf_dim <- function(x,t,sigma,mu1,mu0 )
   return(pdf0)
 }
 
+#' @export
 cdf <- function(x,t,sigma,mu1,mu0 )
 { # Intermediate function for p_rec()
   f_x = 0.5 - 0.5 * erf( (x-mu0-mu1*t)/(sigma*sqrt(2)) )
   return(f_x)
 }
 
+#' @export
 p_x <- function(x,t,sigma,mu1,mu0,dx=1e-8) 
 { # Intermediate function for p_rec() 
   if ( t < 1 ) stop("t must be >= 1.")
@@ -547,6 +568,7 @@ p_x <- function(x,t,sigma,mu1,mu0,dx=1e-8)
   return(p)
 }
 
+#' @export
 p_rec <- function(t,sigma=1,mu1=0,mu0=0,model=0,subdivisions=1e2)
 { # Calculate the probability of a record at timestep n
   # model==0: 1/n
@@ -592,6 +614,7 @@ p_rec <- function(t,sigma=1,mu1=0,mu0=0,model=0,subdivisions=1e2)
   return(p_rec)
 }
 
+#' @export
 gen.lookup <- function(t=c(1:200),mu1sigma=seq(-0.2,0.2,by=0.01))
 { # Generate a lookup table for t values of p_rec and various mu1/sigma ratios
   
@@ -610,6 +633,7 @@ gen.lookup <- function(t=c(1:200),mu1sigma=seq(-0.2,0.2,by=0.01))
   return(lu)
 }
 
+#' @export
 p_rec.lookup <- function(t,sigma=1,mu1=0,mu0=0,model=1)#,lu)
 { # Extract p_rec series of interest from a pre-calculated look-up table,
   # Find the time series of expected records that matches the desired mu1sigma ratio
@@ -625,6 +649,7 @@ p_rec.lookup <- function(t,sigma=1,mu1=0,mu0=0,model=1)#,lu)
   return(p_rec)
 }
 
+#' @export
 Rx <- function(t,ntot=10,sigma=1,mu1=0,mu0=0,model=0) 
 { # Calculate the expected number of records for a given time interval
   m = ntot-1
@@ -636,6 +661,7 @@ Rx <- function(t,ntot=10,sigma=1,mu1=0,mu0=0,model=0)
   return(Rx)
 }
 
+#' @export
 Xx <- function(t,ntot=10,sigma=1,mu1=0,mu0=0,model=1) 
 { # Determine the ratio of records, calculating them at each time first
   X1 = Rx(t,ntot,sigma,mu1,mu0,model=model)
@@ -644,6 +670,7 @@ Xx <- function(t,ntot=10,sigma=1,mu1=0,mu0=0,model=1)
   return(X1/X0)
 }
 
+#' @export
 Xrec <- function(p1,p0,ii)
 { # Determine the ratio of records over a given time interval (indices ii)
   X1 = sum(p1[ii])
@@ -655,6 +682,7 @@ Xrec <- function(p1,p0,ii)
 ## NORMALITY TESTS ####
 ## (with simplified output for analysis)
 
+#' @export
 my.ks.test <- function(x,y,...)
 { # Perform ks.test, only return D-statistic.
   tmp = ks.test(x,y,...)
@@ -663,6 +691,7 @@ my.ks.test <- function(x,y,...)
   return(D)
 }
 
+#' @export
 my.bptest <- function(...)
 { # Perform bp.test, only return BP statistic.
   #require(lmtest)
@@ -676,6 +705,7 @@ my.bptest <- function(...)
 
 ## NOW TIME SERIES FUNCTIONS ####
 
+#' @export
 series_gen <- function(n=100,a=0.1,missing=integer(0))
 { # Generate a random series with linear trend
   # for testing
@@ -689,6 +719,7 @@ series_gen <- function(n=100,a=0.1,missing=integer(0))
   return(list(x=x,y=y,trend=trend,sd=sd))
 }
 
+#' @export
 series_extremes <- function(y)
 { # Calculate when extremes occur in time series y
   
@@ -729,6 +760,7 @@ series_extremes <- function(y)
   return(data.frame(exhi=exhi,exlo=exlo))
 }
 
+#' @export
 series2D_extremes <- function(yy)
 { # Calculate when extremes occur in 2D time series yy (nm X n)
   # (To get low extremes, input negative time series (-yy) )
@@ -762,6 +794,7 @@ series2D_extremes <- function(yy)
   return(exhi)
 }
 
+#' @export
 series_stats <- function(x,y,fit="ssa",pmin=30,L=NULL,nmin=5,p_rec_func=p_rec.lookup)
 {
   nt    = length(y)
@@ -819,6 +852,7 @@ series_stats <- function(x,y,fit="ssa",pmin=30,L=NULL,nmin=5,p_rec_func=p_rec.lo
   return(list(x=x,y=y,trend=trend,y0=y0,sigma=sigma,exhi=ex$exhi,exlo=ex$exlo))
 }
 
+#' @export
 get.intervals <- function(x,weights=NULL,norm=FALSE)
 { # Function to determine confidence/credence intervals
   # from random samples
@@ -857,6 +891,7 @@ get.intervals <- function(x,weights=NULL,norm=FALSE)
   return(out)
 }
 
+#' @export
 get.intervals.binom <- function(x)
 { # Function to determine confidence/credence intervals
   # from random samples from a binomial distribution
@@ -880,7 +915,7 @@ get.intervals.binom <- function(x)
   return(out)
 }
 
-
+#' @export
 series_mc <- function(trend,sigma,n=100)
 { # Function to perform monte carlo experiment
   # given a trend (vector the length of time series), and
@@ -941,6 +976,7 @@ series_mc <- function(trend,sigma,n=100)
 
 
 ## series_seasmean 
+#' @export
 series_seasmean <- function(var12,months=NULL)
 { # Get the seasonal average, making sure to shift december to next year
   nt = dim(var12)[2]

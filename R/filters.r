@@ -75,6 +75,7 @@ wlpf_internal <- function(y, dt, fc, Mmax )
   return(out)
 }
 
+#' @export
 freqfilter <- function( x=NA, y, dt=NA, pc, fc=1/pc, Mmax=NA, bp=FALSE, vec=TRUE )
 { # A wrapper for calls to the window-sinc filter 
   ## Windowed sinc low pass filter

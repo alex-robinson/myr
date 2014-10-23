@@ -1,8 +1,10 @@
 
 # Default jet colors
+#' @export
 jet.colors = c("#00007F", "blue", "#007FFF", "cyan","#7FFF7F",
                  "yellow", "#FF7F00", "red", "#7F0000")
 
+#' @export
 darker <- function(col,percent=10)
 {
   c <- rep("#000000",length(col))
@@ -15,6 +17,7 @@ darker <- function(col,percent=10)
   return(c)
 }
 
+#' @export
 alpha <- function(col,percent=50)
 {
   c <- rep("#000000",length(col))
@@ -26,12 +29,14 @@ alpha <- function(col,percent=50)
   return(c)
 }
 
+#' @export
 colmix <- function(col,col0="grey80",percent=50) {
     newcol = col
     for (q in 1:length(col)) newcol[q] = colorRampPalette(c(col0,col[q]))(100)[percent]
     return(newcol)
 }
 
+#' @export
 get.col = function(x,col=c("blue","red"),n=20,mid=NA,extend=10,ii=c(1:length(x)))
 {
   nx = length(x)

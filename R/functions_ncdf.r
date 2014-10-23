@@ -1,8 +1,8 @@
 
-
+#' @export
 get.nc <- function(file,convert=1,vnms=NA,month=-1,missing=1e10,fliplat=TRUE,shiftlon=TRUE)
 {
-  nc <- open.ncdf(file)
+  nc <- ncdf::open.ncdf(file)
   if (is.na(vnms[1])) vnms <- names(nc$var)
   dims = nc$dim 
 
@@ -13,7 +13,7 @@ get.nc <- function(file,convert=1,vnms=NA,month=-1,missing=1e10,fliplat=TRUE,shi
   # Get dimensional variables, if they exist
   for ( q in 1:length(dims) ) {
     nm = dims[[q]]$name 
-    out[[nm]]   <- get.var.ncdf(nc,nm)
+    out[[nm]]   <- ncdf::get.var.ncdf(nc,nm)
   }
 
   # Load the variables
@@ -36,8 +36,8 @@ get.nc <- function(file,convert=1,vnms=NA,month=-1,missing=1e10,fliplat=TRUE,shi
     }
     
     #cat("vnm:",vnm,"\n")
-    out[[vnm]] <- get.var.ncdf( nc, v3, start=start, count=count )
-    out[[vnm]][abs(out[[vnm]]) >= missing] <- NA
+    out[[vnm]] <- ncdf::get.var.ncdf( nc, v3, start=start, count=count )
+    out[[vnm]][abs(out[[vnm]]) >= missing] = NA
 
   }
 
@@ -60,7 +60,7 @@ get.nc <- function(file,convert=1,vnms=NA,month=-1,missing=1e10,fliplat=TRUE,shi
   cat("get.nc :",file,"\n")
   
   # Close files
-  close.ncdf(nc)
+  ncdf::close.ncdf(nc)
   
   return(out)
 }

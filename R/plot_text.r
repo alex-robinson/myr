@@ -1,5 +1,5 @@
 
-
+#' @export
 shadowtext <- function(x, y=NULL, labels, col='white', bg='black',
                        theta= seq(pi/4, 2*pi, length.out=8), r=0.1, ... ) 
 {
@@ -14,7 +14,7 @@ shadowtext <- function(x, y=NULL, labels, col='white', bg='black',
   text(xy$x, xy$y, labels, col=col, ... )
 }
 
-
+#' @export
 format_r2 <- function(fit,digits=2)
 { # return the r^2 value ready for plotting
   r2 = summary(fit)$adj.r.squared
