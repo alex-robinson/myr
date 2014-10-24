@@ -1,5 +1,5 @@
 
-
+#' @export
 rmse <- function(x,ii=c(1:length(x)),round=NA)
 {
   # Filter for desired points
@@ -14,6 +14,7 @@ rmse <- function(x,ii=c(1:length(x)),round=NA)
   
 }
 
+#' @export
 rsquared <- function(x,xfit,ii=c(1:length(x)),round=NA)
 { # Calculate the R-squared value: R-squared = 1 - MSE/VAR(Y)
 
@@ -37,6 +38,7 @@ rsquared <- function(x,xfit,ii=c(1:length(x)),round=NA)
   
 }
 
+#' @export
 normalize <- function(x,sd1=NA,ave=NA)
 {
   if (is.na(sd1)) sd1 <- sd(x,na.rm=TRUE)
@@ -46,6 +48,7 @@ normalize <- function(x,sd1=NA,ave=NA)
   return(x1)
 }
 
+#' @export
 standardize <- function(pres,ibase=c(1:length(pres)))
 { # Standardize the data of a given month
   
@@ -63,6 +66,7 @@ standardize <- function(pres,ibase=c(1:length(pres)))
   return(stdpres)
 }
 
+#' @export
 derivative <- function(x,y)
 {
     dy = c(NA,diff(y)/diff(x))
@@ -77,6 +81,7 @@ check_max = function(xnow,x,max)
     return(check)
 }
 
+#' @export
 resample = function(x,y,xout,dtmax=NULL)
 {   # Resample dataset, introduce NA values if necessary
     new = approx(x,y,xout=xout,rule=2)$y 
@@ -85,6 +90,7 @@ resample = function(x,y,xout,dtmax=NULL)
 }
 
 ## Adding histogram to a plot
+#' @export
 my.hist <- function(hi,freq=TRUE,b=FALSE,col='grey95',border='grey70',lwd=1,lty=1,filled="standard")
 {
   
@@ -125,6 +131,7 @@ my.hist <- function(hi,freq=TRUE,b=FALSE,col='grey95',border='grey70',lwd=1,lty=
 
 }
 
+#' @export
 get.conf <- function(x,weight,interval=95)
 { # Function to determine confidence/credence intervals
   # given a sample x and weights (weight should sum to 1)
@@ -154,6 +161,7 @@ get.conf <- function(x,weight,interval=95)
   return(ii95)
 }
 
+#' @export
 get.threshold <- function(x,dens,percent)
 { # Calculate the level x1 at which sum(density) >= percent 
 
@@ -176,7 +184,7 @@ get.threshold <- function(x,dens,percent)
   return(data.frame(percent=percent,x=x1,weight=wgt))
 }
 
-
+#' @export
 dnorm.integrated <- function(x,n=100,mean=0,sd=1)
 { # Get the integrated prob. density of bins (instead of just 1 value)
   # (function requested by Dr Rougier for statistics of hysteresis paper)
@@ -196,6 +204,7 @@ dnorm.integrated <- function(x,n=100,mean=0,sd=1)
   return(p)
 }
 
+#' @export
 samples.syn <- function(x,p,n=1e3,dx=0.01,spar=0.6,from=range(x,na.rm=T)[1],to=range(x,na.rm=T)[2]) 
 { ## Method: Get spline of cdf and sample a large number of
   ## points from it. Return individual points with probabilities attached and
@@ -258,7 +267,7 @@ samples.syn <- function(x,p,n=1e3,dx=0.01,spar=0.6,from=range(x,na.rm=T)[1],to=r
 }
 
 
-
+#' @export
 my.density <- function(x,weights=rep(1,length(x)),subset=NULL,
                        from=NULL,to=NULL,n=512,dx=NA,dx.hist=0.1,
                        na.rm=T,type="kde",calchist=FALSE,verbose=TRUE)
@@ -386,6 +395,7 @@ my.density <- function(x,weights=rep(1,length(x)),subset=NULL,
   return(out)
 }
 
+#' @export
 normalize_density <- function(dens,mids) 
 {   # Returns the density renormalized (eg after multiplying probabilities together)
 
@@ -394,6 +404,7 @@ normalize_density <- function(dens,mids)
     return(dens)
 }
 
+#' @export
 get_intervals <- function(dens,mids)
 {   # Returns the 2.5, 33, 50, 66, 97.5 conf intervals
 
@@ -415,6 +426,7 @@ get_intervals <- function(dens,mids)
     return(table.new)
 }
 
+#' @export
 join_pdfs <- function(dens2D,mids)
 {   # Given density[mids,other], make a marginal pdf: density[mids]
 
@@ -432,6 +444,7 @@ join_pdfs <- function(dens2D,mids)
     return(out)
 }
 
+#' @export
 join_pdfs1 <- function(dens2D,mids)
 {   # Given density[mids,other], make a marginal pdf: density[mids]
 
@@ -445,6 +458,7 @@ join_pdfs1 <- function(dens2D,mids)
     return(out)
 }
 
+#' @export
 combine <- function(x,y,normalize=FALSE) 
 { # Function to combine all combinations of two vectors
   
@@ -458,6 +472,7 @@ combine <- function(x,y,normalize=FALSE)
   return(out)
 }
 
+#' @export
 plot.histweights <- function(dist)
 {
   col <- rep(2,length(dist$x))
@@ -467,6 +482,8 @@ plot.histweights <- function(dist)
   plot(dist$x,dist$y,col=col,xlab="Temp (°C)",ylab="Weighting",xlim=c(0,6))
 
 }
+
+#' @export
 pointfit2 <- function(x0,y0,col=1,lwd=1,pch=1,lty=1)
 {
   fit <- lm(y0~x0+I(x0^2))
