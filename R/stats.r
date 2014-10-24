@@ -63,6 +63,26 @@ standardize <- function(pres,ibase=c(1:length(pres)))
   return(stdpres)
 }
 
+derivative <- function(x,y)
+{
+    dy = c(NA,diff(y)/diff(x))
+    dy[1] = dy[2]
+    return(dy)
+}
+
+check_max = function(xnow,x,max)
+{   # Check if the nearest x is within the max allowed distance
+    check = 1 
+    if ( min(abs(x-xnow)>max,na.rm=TRUE) ) check = NA
+    return(check)
+}
+
+resample = function(x,y,xout,dtmax=NULL)
+{   # Resample dataset, introduce NA values if necessary
+    new = approx(x,y,xout=xout,rule=2)$y 
+    if (!is.null(dtmax)) for (k in 1:length(xout)) new[k] = new[k]*check_max(xout[k],x,max=dtmax)
+    return(new)
+}
 
 ## Adding histogram to a plot
 my.hist <- function(hi,freq=TRUE,b=FALSE,col='grey95',border='grey70',lwd=1,lty=1,filled="standard")
