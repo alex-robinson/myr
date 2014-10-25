@@ -867,411 +867,6 @@ load_MAR <- function(fldr,time=c(1950:2100),time.base=c(1980:2000))
 
 ###
 
-
-## INSOLATION LOADING ##
-#' @export
-get_insol <- function(time,lat,day_mean=c(171))
-{
-  nc = open.ncdf("~/wrk_local/data/paleo/insolation.NH.150ka.nc")
-
-  nc.time = get.var.ncdf(nc,"time")*1e-3
-  nc.lat  = get.var.ncdf(nc,"latitude")
-
-  k0 = which.min(abs(nc.time-min(time)))
-  k1 = which.min(abs(nc.time-max(time)))
-  k0 = max(0,k0-1)
-  k1 = min(length(nc.time),k1+1)
-  nk = k1-k0+1
-
-  l0 = which.min(abs(nc.lat-min(lat)))
-  l1 = which.min(abs(nc.lat-max(lat)))
-  l0 = max(0,l0-1)
-  l1 = min(length(nc.lat),l1+1)
-  nl = l1-l0+1
-
-  lat1  = nc.lat[c(l0:l1)]
-  time1 = nc.time[c(k0:k1)]
-
-  ins3D = get.var.ncdf(nc,"ins",start=c(1,l0,k0),count=c(-1,nl,nk))
-  close.ncdf(nc)
-  
-  if (length(day_mean)>1) {
-    ins2D = apply(ins3D[day_mean,,],c(2,3),mean)
-  } else {
-    ins2D = ins3D[day_mean,,]
-  }
-
-  ## Now interpolate to desired times and lats 
-  obj = list(x=lat1,y=time1,z=ins2D)
-
-  lat0 = lat 
-  if (!is.null(dim(lat0))) lat = as.vector(lat0)
-
-  loc = expand.grid(x=lat,y=time)
-  new = interp.surface(obj,loc)
-
-  if (!is.null(dim(lat0))) {
-    dim(new) = c(dim(lat0),length(time))
-  } else {
-    dim(new) = c(length(lat0),length(time))
-    if (length(lat0)==1) new = as.vector(new)
-  }
-
-  return(new)
-}
-
-
-
-
-## HYSTERESIS
-#' @export
-get.basins <- function(infob,xhyst,yhyst) 
-{
-  
-  # Get number of cases
-  n <- dim(infob)[1]
-  
-  # Get the x values and generate y values to 
-  # make up the basins image
-  x <- sort( unique(infob$T_warming) )
-  y <- sort( unique(infob$Vtot.init) )
-
-  # Determine current max/min volumes of bounding hyst curves
-  Vmins <- Vmaxs <- numeric(length(x))
-  ebs <- 0.05
-  for ( i in 1:length(x) ) {
-    Tnow <- x[i]
-    q <- which(abs(xhyst[,1]-Tnow) < ebs)
-    Vmins[i] <- mean(yhyst[q,1],na.rm=TRUE)
-    q <- which(abs(xhyst[,2]-Tnow) < ebs)
-    Vmaxs[i] <- mean(yhyst[q,2],na.rm=TRUE)
-  }
-  
-  # Create the basins object, x=temperature,y=volume,z=final volume
-  basins <- list(x=x,y=y,z=matrix(0,nrow=length(x),ncol=length(y)))
-  basins$time <- basins$z0 <- basins$zf <- basins$z
-  
-  Vscale <- max(infob$Vtot.eq,na.rm=TRUE)
-  
-  for ( i in 1:n ) {
-    
-    # Get current values
-    Tnow  <- infob$T_warming[i]
-    Veq   <- infob$Vtot.eq[i]
-    Vinit <- infob$Vtot.init[i]
-    
-    # Get x and y indices of current case
-    ii <- which( x == Tnow )
-    jj <- which( y == Vinit )
-    
-    # Get bounding volumes for current dT
-    Vmin <- Vmins[ii]; Vmax <- Vmaxs[ii]
-    Vscale <- Vmax
-    
-    # Determine basin value (-1,-2: ambigous, 0: upper basin, 1: lower basin)
-    Bval <- 0
-    if ( !is.na(Veq) ) {
-      
-      # Check for ambiguous points
-      # (points that are in the middle, higher or lower than starting point...)
-      if ( abs(Veq-Vmin)/Vscale > 0.15 & abs(Veq-Vmax)/Vscale > 0.15 ) Bval <- -1
-      
-      # Check for ambiguous points that are lower than starting point
-      # (points that have reduced volume, but did not go to Vmin)
-      #if ( (Veq-Vinit)/Vscale < -0.05 & (Veq-Vmin)/Vscale > 0.05 ) Bval <- -2
-      
-      # Check for points that are close to the minimum equil. value
-      if ( abs(Veq-Vmin)/Vscale < 0.1 ) Bval <- 1
-      
-      # If Vmin and Vmax are converging, then basins dont exist
-      if ( abs(Vmax-Vmin)/Vscale < 0.5 ) Bval <- 0
-    }
-        
-    # Store values in basins list
-    basins$z0[ii,jj]   <- Vinit
-    basins$zf[ii,jj]   <- Veq
-    basins$z[ii,jj]    <- Bval
-    basins$time[ii,jj] <- infob$time.eq[i]
-    
-    # Add hysteresis curve to facilitate plotting
-    # xhyst, yhyst, should contain two curves each, one for anf_dat=2 and anf_dat=3
-    
-    # Eliminate NA values
-    jj <- which(!is.na(apply(cbind(xhyst,yhyst),FUN=sum,MARGIN=1)))
-    xhyst <- xhyst[jj,]
-    yhyst <- yhyst[jj,]
-    
-    basins$xhyst <- xhyst
-    basins$yhyst <- yhyst
-  }
-
-  return(basins)
-}
-
-## Add basins to a plot
-#' @export
-add.basins <- function(basins,b.pts=FALSE,b.lines=FALSE,tmax=NA,lwd=2,col=1,lwd.box=2)
-{
-  ccc <- colorRampPalette(c("darkred","red","yellow"))(7)
-  c1 <- ccc[4]
-  c1 <- rgb(t(col2rgb(c1)),alpha=230,max=255)
-  c2 <- rgb(t(col2rgb(c1)),alpha=80,max=255)
-
-  # Colors: c(ambiguous, upper basin, lower basin)
-  c1 <- c(c2,"white",c1)
-  
-  # Plot the basins first
-  image(basins,col=c1,add=TRUE)
-  
-  # Make horizontal lines indicating each 10% initial starting volume
-  if (b.lines) {
-    jj <- c(1:length(basins$y))
-    yy <- basins$y[which(jj %% 2 == 0)]  #; yy<-yy[-1]
-    fracs <- c("20%","30%","40%","50%","60%","70%","80%","90%")
-    col <- rep("grey20",length(yy)); col[1:3] <- "grey95"
-    abline(h=yy,col=col[8],lwd=2)
-    x1 <- xlim[2]-(xlim[2]-xlim[1])*0.08
-    for ( j in 1:length(yy) ) {
-      x1 <- x1 - (xlim[2]-xlim[1])*0.06
-      text(x1,yy[j]-0.08,fracs[j],cex=0.5,col=col[j])
-    }
-  }
-  
-  # Set color of hyst plot to black
-  #cols <- cols*0 + 1
-  
-  # Get polygon outline of hyst curve, so that I can
-  # color over basin values outside of the curve
-  xx1 <- c(min(basins$xhyst[,1]),max(basins$xhyst[,1]),basins$xhyst[,1] )
-  yy1 <- c(0,0,basins$yhyst[,1] )
-  
-  xx2 <- c(max(basins$xhyst[,1]),min(basins$xhyst[,1]),basins$xhyst[,2] )
-  yy2 <- c(5,5,basins$yhyst[,2] )
-  
-  polygon(xx1,yy1,col=0,border=0)
-  polygon(xx2,yy2,col=0,border=0)
-  
-  ## Replot hysteresis lines
-  for (i in 1:2) {
-    lines(basins$xhyst[,i],basins$yhyst[,i],lwd=lwd,col=col)
-  }
-  
-  # Plot ambiguous points of basins
-  if (b.pts) {
-    x1 <- matrix(basins$x,nrow=length(basins$x),ncol=length(basins$y))
-    
-    x1 <- as.vector(x1); V1 <- as.vector(basins$zf)
-    t1 <- as.vector(basins$time); if (!is.na(tmax)) t1[t1 > tmax] <- tmax
-    c2 <- rep("lightgreen",length(t1)); c2[ t1 >= (0.90*max(t1)) ] <- "darkgreen"
-    c2[ ! as.vector(basins$z) %in% c(-1,2) ] <- "grey70"
-    ii <- which(c2=="grey70"); points(x1[ii],V1[ii],pch=3,col=c2[ii],lwd=2.5)
-    ii <- which(c2!="grey70"); points(x1[ii],V1[ii],pch=3,col=c2[ii],lwd=2.5)
-  }
-  
-  box(lwd=lwd.box)
-}
-
-### Set up hysteresis plotting function ###
-#' @export
-plot.hyst <- function(sets,nms=NA,basins=NA,by="itm_c",v="Vtot.eq",xlab="Temperature anomaly (°C)",
-                      ylab=expression(paste("Volume (million ",km^{3},")")),
-                      title=NA,panel=NA,legend="topright",ylim=c(0,4),cols=NA,
-                      lwd.box=1,col.box=1,col.lab=1,x.by=0.5,y.by=1,tmax=NA,
-                      xlim=c(-2,4),lwd=c(1,2.5),lty=c(1,1),pch=c(21,20),cex.pch=c(0.8,1.1),
-                      axes=c(TRUE,TRUE),b.pts=FALSE,...)
-{
-  
-  # Determine how many sets there are (based on 'by')
-  s <- unique(sets[,by])
-  nsets <- length(s)
-  
-  if ( is.na(cols[1]) & length(cols)==1 ) {
-    #cols <- c("slateblue4","mediumpurple1","orangered3","green","magenta")
-    #cols <- c("blue","mediumpurple4","orangered2","green","magenta")
-    #cols <- c("slateblue1","darkviolet","salmon")
-    cols <- c("blue","black","red")
-  }
-  upcols <- cols  #gen.bad.cols(cols,bad=c(1,1,1),m=180)
-
-  ylim <- range(ylim,sets[,v],na.rm=TRUE)  # Make sure volume range is at least 0,4
-  
-  # Determine the axes
-  xx0 <- xlim[1]
-  if ( xlim[1] %% 1 != 0.0 ) {
-    offset <- xlim[1] %% 1
-    if ( (xlim[1]+offset) %% 1 != 0.0 ) offset <- -offset
-    xx0 <- xlim[1] + offset
-  }
-  xmajor <- seq(from=xx0,to=xlim[2],by=x.by)
-  xminor <- seq(from=xx0,to=xlim[2],by=x.by/2)
-  xminor[match(xmajor,xminor)] <- NA
-  
-  ymajor <- seq(from=ylim[1],to=ylim[2],by=y.by)
-  yminor <- seq(from=ylim[1],to=ylim[2],by=y.by/2)
-  yminor[match(ymajor,yminor)] <- NA
-  
-  # Make the initial blank plot
-  plot(sets$T_warming,sets[,v],type="n",xlim=xlim,ylim=ylim,
-       xlab="",ylab="",axes=FALSE)
-       
-  cex.lab <- 0.8
-  if ( !xlab=="" ) mtext(xlab,side=1,line=1.5,cex=cex.lab,col=col.lab)
-  ylab0 <- ylab; if ( is.expression(ylab) ) ylab0 <- "title exists"
-  if ( !ylab0=="" ) mtext(ylab,side=2,las=0,line=1.5,cex=cex.lab,col=col.lab) 
-  
-  if (length(basins) >= 3) {
-    
-    ccc <- colorRampPalette(c("darkred","red","yellow"))(7)
-    c1 <- ccc[4]
-    #c1  <- colorRampPalette(c("red","black"))(10)[2]
-    c1 <- rgb(t(col2rgb(c1)),alpha=230,max=255)
-    c2 <- rgb(t(col2rgb(c1)),alpha=80,max=255)
-    
-#     
-#     c1 <- ccc[4]; c2 <- ccc[6]
-
-    # Colors: c(ambiguous, upper basin, lower basin)
-    c1 <- c(c2,"white",c1)
-    
-    # Plot the basins first
-    image(basins,col=c1,xlim=xlim,ylim=ylim,add=TRUE)
-    
-    # Make horizontal lines indicating each 10% initial starting volume
-    if (FALSE) {
-      jj <- c(1:length(basins$y))
-      yy <- basins$y[which(jj %% 2 == 0)]  #; yy<-yy[-1]
-      fracs <- c("20%","30%","40%","50%","60%","70%","80%","90%")
-      col <- rep("grey20",length(yy)); col[1:3] <- "grey95"
-      abline(h=yy,col=col[8],lwd=2)
-      x1 <- xlim[2]-(xlim[2]-xlim[1])*0.08
-      for ( j in 1:length(yy) ) {
-        x1 <- x1 - (xlim[2]-xlim[1])*0.06
-        text(x1,yy[j]-0.08,fracs[j],cex=0.5,col=col[j])
-      }
-    }
-    
-    # Set color of hyst plot to black
-    #cols <- cols*0 + 1
-    
-    # Get polygon outline of hyst curve, so that I can
-    # color over basin values outside of the curve
-    #set <- sets[sets$set==1,]
-    set <- sets
-    i <- order(set$T_warming,decreasing=TRUE); set <- set[i,]
-    
-    # Get indices of up and dn values
-    up <- which( set$anf_dat == 2 )
-    dn <- which( set$anf_dat != 2 )
-    
-    xx1 <- c(seq(from=-10,to=10),   set$T_warming[up] )
-    yy1 <- c(seq(from=-10,to=10)*0, set[up,v]         )
-    
-    xx2 <- c(seq(from=-10,to=10),   set$T_warming[dn] )
-    yy2 <- c(seq(from=-10,to=10)*0 + 5, set[dn,v]     )
-    
-    polygon(xx1,yy1,col=0,border=0)
-    polygon(xx2,yy2,col=0,border=0)
-    
-    # Plot ambiguous points of basins
-    if (b.pts) {
-      x1 <- matrix(basins$x,nrow=length(basins$x),ncol=length(basins$y))
-      
-      x1 <- as.vector(x1); V1 <- as.vector(basins$zf)
-      t1 <- as.vector(basins$time); if (!is.na(tmax)) t1[t1 > tmax] <- tmax
-      c2 <- rep("lightgreen",length(t1)); c2[ t1 >= (0.90*max(t1)) ] <- "darkgreen"
-      c2[ ! as.vector(basins$z) %in% c(-1,2) ] <- "grey70"
-      ii <- which(c2=="grey70"); points(x1[ii],V1[ii],pch=3,col=c2[ii],lwd=2.5)
-      ii <- which(c2!="grey70"); points(x1[ii],V1[ii],pch=3,col=c2[ii],lwd=2.5)
-    }
-    
-  } else {
-    
-    # Add the background grid
-    #grid(lty=1)
-    abline(h=ymajor,v=xmajor,lty=3,col=8)
-    abline(h=yminor,v=xminor,lty=3,col=8)
-    
-  }
-
-  leg.lwd=numeric(nsets)+lwd[2]
-  leg.lty=numeric(nsets)+lty[2]
-  leg.pch=numeric(nsets)+pch[2]
-  leg.col=cols
-  
-  if (!is.na(panel)) { 
-    x0 <- xlim[1]+0.5; y0 <- 0.3
-    text(x0,y0,panel,cex=0.5,vfont=c("serif","bold"),col="grey30")
-  }
-  
-  if (!is.na(nms[1])) {
-    leg.bg <- "grey90"
-    legend(legend,nms,     #title=title,
-           lwd=leg.lwd,lty=leg.lty,
-           #pch=leg.pch,
-           col=leg.col,cex=0.6,inset=c(0.02,0.02),
-           box.lwd=0,box.col=leg.bg,bg=leg.bg)
-#     legend(legend,nms,     #title=title,
-#            lwd=leg.lwd,lty=leg.lty,
-#            #pch=leg.pch,
-#            col=leg.col,cex=0.65,ncol=3,#inset=c(0.01,0.02),
-#            box.lwd=0,box.col=leg.bg,bg=leg.bg)
-  }
-  
-  
-  ### FOR hyst.supplementary ### 
-#     colnow <- cols
-#     for (i in 1:nsets) {
-#       # Get the current set
-#       ii <- which( sets[,by] == s[i] )
-#       set <- sets[ii,]
-#       
-#       lines(set$T_warming,set[,v],lwd=lwd[i],lty=lty[i],col=colnow[i])
-#     }
-  ###
-  
-  
-  # Loop through ups and downs
-  for (q in 2:3) {
-    
-    colnow <- cols
-    if (q==2) colnow <- upcols
-    qq <- q-1
-    
-    # Loop through the sets of hysteresis data
-    for (i in 1:nsets) {
-      
-      # Get the current set
-      ii <- which( sets[,by] == s[i] & sets$anf_dat == q )
-      set <- sets[ii,]
-      
-      # Plot ups
-      lines(set$T_warming,set[,v],lwd=lwd[qq],lty=lty[qq],col=colnow[i])
-      #points(set$T_warming,set[,v],pch=pch[qq],cex=cex.pch[qq],col=colnow[i])
-
-    }
-  }
-    
-  # Add axes!
-  if (axes[1]) {
-    axis(1,at=xmajor,labels=TRUE,...)
-    #axis(1,at=xminor,labels=FALSE)
-    #axis(3,at=xmajor,labels=FALSE)
-    #axis(3,at=xminor,labels=FALSE)
-  }
-  if (axes[2]) {
-    axis(2,at=ymajor,labels=TRUE,...)
-    #axis(4,at=ymajor,labels=TRUE,...)
-    #axis(2,at=yminor,labels=FALSE)
-    #axis(4,at=ymajor,labels=FALSE)
-    #axis(4,at=yminor,labels=FALSE)
-  }
-  
-  # Add the border box
-  box(lwd=lwd.box,col=col.box)
-  
-}
-
-#' @export
 gen.styles <- function(nm,n=length(nm),col=rep(1,n),lty=rep(1,n),
                        lwd=rep(1,n),pch=rep(23,n),pch.lwd=rep(1,n),cex=rep(1,n),bg=rep(NA,n))
 {
@@ -1285,16 +880,11 @@ gen.styles <- function(nm,n=length(nm),col=rep(1,n),lty=rep(1,n),
   return(styles)
 }
 
-#' @export
 land.colors  <- colorRampPalette(c("tan","brown"),bias=5)
-#' @export
 water.colors <- colorRampPalette(c("skyblue3","lightblue"))
-#' @export
 grey.colors  <- colorRampPalette(c("grey50","grey80"))
-#' @export
 abc.labels <- c("a","b","c","d","e","f","g")
 
-#' @export
 panel.contour.grl <- function(x,y,subscripts,...,datasets,
                               extra=extra,extra2=extra2,ptext=NA,plabel=NA,pobs=NULL,latlon=TRUE)
 {
@@ -1408,7 +998,6 @@ panel.contour.grl <- function(x,y,subscripts,...,datasets,
 
 }
 
-#' @export
 get.contours <- function(nm,var=NULL,zrange=NULL,n=15,alpha=100,darker=0,
                 col=NULL,bias=NULL,at=NULL,at.mark=NULL,rev=FALSE)
 {
@@ -1535,7 +1124,6 @@ get.contours <- function(nm,var=NULL,zrange=NULL,n=15,alpha=100,darker=0,
               contour.plot=FALSE,contour.lwd=0.5,contour.lty=1,contour.col="white"))
 }
 
-#' @export
 fill_mask <- function(mask)
 { # Fill an ice sheet mask so there are no isolated grid types
   
@@ -1570,7 +1158,6 @@ fill_mask <- function(mask)
 }
 
 ## Add latitude and longitude lines and labels
-#' @export
 add_latlon <- function(grid,x=grid$xx[,1],y=grid$yy[1,],col="grey30",lty=2,lwd=0.5,cex=0.9,shift.lat=0,shift.lon=0)
 {
   lats <- grid$lat
@@ -1605,7 +1192,6 @@ add_latlon <- function(grid,x=grid$xx[,1],y=grid$yy[1,],col="grey30",lty=2,lwd=0
 
   
 # My own image/contour plotting function
-#' @export
 my.image <- function(dat,nm="zs",ii=c(1:length(dat[[nm]])),col=NULL,breaks=NULL,mask=TRUE)
 {
   
@@ -1628,7 +1214,6 @@ my.image <- function(dat,nm="zs",ii=c(1:length(dat[[nm]])),col=NULL,breaks=NULL,
   box()
 }
 
-#' @export
 my.image3 <- function(dat,nm="zs",suffix=NA,sim=1,k=1,ii=c(1:length(dat[[nm]][sim,,,k])),col=NULL,breaks=NULL,
                       plt.var=TRUE,plt.var.cont=FALSE,plt.ocean=TRUE,plt.land=TRUE,plt.mask=TRUE,plt.latlon=TRUE,lwd=0.5,
                       col.land=NULL,col.latlon=alpha(1,50),cex.latlon=0.9,lwd.mask=2,fill=FALSE)
@@ -1731,7 +1316,6 @@ my.image3 <- function(dat,nm="zs",suffix=NA,sim=1,k=1,ii=c(1:length(dat[[nm]][si
   return(list(col=col,breaks=breaks))
 }
 
-#' @export
 list_sub <- function(new,default)
 {
   if (!is.null(new)) {
@@ -1745,7 +1329,6 @@ list_sub <- function(new,default)
   return(default)
 }
 
-#' @export
 my.image4 <- function(x=NULL,y=NULL,var,zs,mask,lat,lon,ii=c(1:length(var)),col=NULL,breaks=NULL,
                       plt.var=NULL,plt.land=NULL,plt.ocean=NULL,plt.mask=NULL,plt.latlon=NULL )
 
@@ -1826,7 +1409,6 @@ my.image4 <- function(x=NULL,y=NULL,var,zs,mask,lat,lon,ii=c(1:length(var)),col=
   return(list(col=col,breaks=breaks))
 }
 
-#' @export
 plot.series <- function(x,y,xlim=NULL,ylim=NULL,col=NULL,good=NULL,
                         axis=c(1,2),lwd=2,lty=1,alpha=20,title=NULL)
 { # x: x variable (vector)
@@ -1861,216 +1443,6 @@ plot.series <- function(x,y,xlim=NULL,ylim=NULL,col=NULL,good=NULL,
   box()
 }
 
-## 
-## PLOT FUNCTION TEMP...
-#' @export
-plot.paleo <- function(runs,nm="Vtot",xnm="time",ii=NA,xlab="",ylab="",title="",col=NULL,bad=NA,axis=NA,lwd=2,lty=1,
-                       hline=NA,h.lwd=2,h.lty=1,h.col="grey60",lwd.box=1,
-                       xmaj=6,ymaj=4,xmin=xmaj*2-1,ymin=ymaj*2-1,
-                       x.at=NULL,y.at=NULL,
-                       convert=1,xlim=range(runs[[xnm]],na.rm=TRUE),cex=1,at=NULL,
-                       ylim=range(runs[[nm]],na.rm=TRUE)*convert,label="",add=FALSE,interp=NA )                       
-{
-  
-  # Determine number of runs to plot (and indices of runs)
-  nruns <- dim(runs[[nm]])[2]
-  
-  # Generate x array (in case time is used, make array for number of runs)
-  x00 <- runs[[xnm]]
-  if (length(x00) != length(runs[[nm]])) x00 <- array(runs[[xnm]],dim=dim(runs[[nm]]))
-  
-  # Generate a color palette based on the number of runs
-  if (is.null(col)) col <- colorRampPalette(c("red","yellow","blue","black","green","magenta","cyan"))(nruns)
-  if (length(col)==1) col <- rep(col,nruns)
-  if (is.na(bad[1]))  bad <- numeric(nruns)
-  if (length(lwd)==1) lwd <- rep(lwd,nruns)
-  if (length(lty)==1) lty <- rep(lty,nruns)
-  if (length(lty)==2) { lty2 <- lty[2]; lty <- rep(lty[1],nruns); lty[which(bad!=0)] <- lty2 }
-  
-  # Determine indices to plot (if not given)
-  if (is.na(ii[1])) ii <- c(1:nruns)
-  
-  # Extend ylim a bit to allow for "title"
-  yr <- diff(ylim)*0.15
-  t0 <- title; if ( is.expression(title) ) t0 <- "title exists"
-  if ( t0 != "" ) ylim[2] <- ylim[2] + yr
-  xr <- diff(xlim)*0.02
-  
-  # Determine the axes
-  xx0 <- xlim[1]
-  if ( xlim[1] %% 1 != 0.0 ) {
-    offset <- xlim[1] %% 1
-    if ( (xlim[1]+offset) %% 1 != 0.0 ) offset <- -offset
-    xx0 <- xlim[1] + offset
-  }
-  # Get major and minor axes
-  xmajor <- pretty(xlim,n=xmaj); xminor <- pretty(xlim,n=xmin)
-  ymajor <- pretty(ylim,n=ymaj); yminor <- pretty(ylim,n=ymin)
-  
-  if (!is.null(x.at)) { 
-    xmajor <- x.at
-    xminor <- seq(from=min(x.at),to=max(x.at),length.out=1+2*(length(x.at)-1))
-  }
-  
-  if (!is.null(y.at)) { 
-    ymajor <- y.at
-    yminor <- seq(from=min(y.at),to=max(y.at),length.out=1+2*(length(y.at)-1))
-  }
-  
-  # Generate width of masking rectangle
-  tmp <- diff(xlim); xp <- mean(xlim) + c(-tmp,tmp)*2
-  tmp <- diff(ylim); yp <- mean(ylim) + c(-tmp,tmp)*2
-  
-  ## Now make the plots ##
-  if (!add) {
-    plot(range(x00[,ii],na.rm=TRUE),range(runs[[nm]][,ii],na.rm=TRUE)*convert,type="n",xlim=xlim,ylim=ylim,xlab="",ylab="",axes=FALSE)
-    #grid(col=8)#,lty=1)
-    abline(v=xminor,h=yminor,col="lightgrey",lty=3)
-    #cat("xmajor:",xmajor,"\n")
-    #cat("xminor:",xminor,"\n")
-    if ( !is.na(hline[1]) ) abline(h=hline,lwd=h.lwd,lty=h.lty,col=h.col)
-  }
-  
-  # Loop over runs, but plot grey (bad) runs first
-  for ( i in ii ) {
-    if ( bad[i] > 0 ) {
-      x <- x00[,i]; y <- runs[[nm]][,i]*convert
-      if ( !is.na(interp) ) { 
-        x1 <- seq(from=min(x),to=max(x),length.out=length(x)*interp)
-        tmp <- approx(x,y,x1)
-        x <- tmp$x; y <- tmp$y
-      }
-      lines(x,y,lwd=lwd[i],col=col[i],lty=lty[i])
-    }
-  }
-  
-  #   # Now plot semi-transparent rectangle to dim the "bad" runs
-#   cshade <- col2rgb("white"); cshade <- rgb(t(cshade),alpha=200,max=255)
-#   rect(xp[1],yp[1],xp[2],yp[2],col=cshade,border=NA)
-
-  for ( i in ii ) {
-    if ( bad[i] == 0 ) {
-      x <- x00[,i]; y <- runs[[nm]][,i]*convert
-      if ( !is.na(interp) ) { 
-        x1 <- seq(from=min(x),to=max(x),length.out=length(x)*interp)
-        tmp <- approx(x,y,x1)
-        x <- tmp$x; y <- tmp$y
-      }
-      lines(x,y,lwd=lwd[i],col=col[i],lty=lty[i])
-    }
-  }
-  
-  ## Plot the meta text
-  if (!add) {
-    text(xlim[2]-xr,ylim[1],pos=2,xlab,cex=cex)
-    
-    xtxt <- xlim[1]+xr; adj <- c(0,1)   #; if ( 4 %in% axis ) { xtxt <- xlim[2]-xr; adj <- c(1,1) }
-    text(xtxt,ylim[2]-yr*0.1,title,adj=adj,cex=cex)
-    
-    # Label (a, b, c...)
-    if (!label=="") {
-      xtxt <- xlim[2]-xr*1.5; adj <- c(1,1)
-      text(xtxt,ylim[2],label,adj=adj,cex=cex,col="grey20")#,vfont=c("serif","bold"))
-    }
-    
-    ## Now the axes and box
-    for (i in 1:length(axis)) {
-      if (axis[i] %in% c(1,3)) axis(axis[i],at=x.at)
-      if (axis[i] %in% c(2,4)) axis(axis[i],at=y.at)
-    }
-    
-#     if ( !is.na(axis[1]) ) axis(axis[1],at=x.at)
-#     if ( !is.na(axis[2]) ) axis(axis[2],at=y.at)
-#     if ( !is.na(axis[3]) ) axis(axis[3],at=x.at)
-#     if ( !is.na(axis[4]) ) axis(axis[4],at=y.at)
-  }
-  
-  box(lwd=lwd.box)
-}
-
-#' @export
-plot.panel <- function(x,y,ii=c(1:length(x)),xlab="",ylab="",title="",col=1,col.xlab=1,bad=NA,axis=NA,pch=21,lwd=2,
-                       hline=NA,h.lwd=2,h.lty=1,h.col="grey60",label="",grid.h=NA,grid.v=NA,
-                       convert=1,xlim=range(x,na.rm=TRUE),cex=1,cex.pch=1.8,at=NULL,
-                       ylim=range(y,hline,na.rm=TRUE)*convert )                       
-{
-  
-  nruns <- length(y)
-  
-  # Determine number of runs to plot (and indices of runs)
-  if (is.na(bad[1]))  bad <- rep(0,nruns)
-  if (length(pch)==1) pch <- rep(pch,nruns)
-  if (length(col)==1) col <- rep(col,nruns)
-  
-  # Extend ylim a bit to allow for "title"
-  yr <- diff(ylim)*0.1
-  ylim[2] <- ylim[2] + yr
-  xr <- diff(xlim)*0.02
-
-  ## Now make the plots ##
-  plot(x,y*convert,type="n",xlim=xlim,ylim=ylim,xlab="",ylab="",axes=FALSE)
-  if (is.na(grid.h[1]) & is.na(grid.v[1])) grid(col="lightgrey")
-  abline(h=grid.h,v=grid.v,lty=3,col="lightgrey")
-  
-  if ( !is.na(hline[1]) ) abline(h=hline,lwd=h.lwd,lty=h.lty,col=h.col)
-  
-  # Loop over runs, but plot grey (bad) runs first
-  ii1 <- ii[which(bad[ii] > 0)]
-  points(x[ii1],y[ii1]*convert,pch=pch[ii1],lwd=lwd,col=col[ii1],cex=cex.pch)
-  
-  # Now plot good points
-  ii1 <- ii[which(bad[ii] == 0)]
-  points(x[ii1],y[ii1]*convert,pch=pch[ii1],lwd=lwd,col=col[ii1],cex=cex.pch)
-  
-  ## Now the axes
-  if ( !is.na(axis[1]) ) { 
-    axis(axis[1],at=at)
-    for ( i in 2:length(axis)) axis(axis[i]) 
-  }
-  
-  #text(xlim[2]-xr,ylim[1],pos=2,xlab,cex=cex,col=col.xlab)
-  text(xlim[2]-xr,ylim[1],adj=c(1,1),xlab,cex=cex,col=col.xlab)
-  
-  xtxt <- xlim[1]; adj <- c(0,1)   #; if ( 4 %in% axis ) { xtxt <- xlim[2]-xr; adj <- c(1,1) }
-  text(xtxt,ylim[2],adj=adj,title,cex=cex)
-  
-  # Label (a, b, c...)
-  if (!label=="") {
-    xtxt <- xlim[2]-xr*1.5; adj <- c(1,1)
-    text(xtxt,ylim[2],label,adj=adj,cex=cex,col="grey20")
-  }
-  
-  box(lwd=1)
-
-}
-
-## Function to plot panels corresponding to parameter choices
-#' @export
-plot.panels <- function(info,pp=c("itm_c","slide0","pkappa"),fpp="Vtot",ylim=c(2,3.5),
-                        title="",pch=20,col=1,ann=FALSE)
-{
-  
-  for ( i in 1:length(pp) ) {
-    
-    p <- pp[i]
-    
-    xlim <- range(info[[p]]); r <- diff(xlim)*0.1; xlim[1] <- xlim[1]-r; xlim[2] <- xlim[2]+r
-    
-    plot(info[[p]],info[[fpp]],type="n",axes=FALSE,xlab="",ylab="",xlim=xlim,ylim=ylim)
-    grid()
-    
-    points(info[[p]],info[[fpp]],pch=pch,cex=2,col=col)
-    
-    axis(1,at=unique(info[[p]])); axis(2); box()
-    
-    if ( ann ) title(p) 
-    if ( i == 1 ) mtext(title,side=2,line=2.5,cex=0.9,las=0)
-    
-  }
-
-}
-
-#' @export
 load_core_info <- function(filename)
 {
 
@@ -2087,7 +1459,6 @@ load_core_info <- function(filename)
 }
 
 ## Function to plot borehole temperature profiles
-#' @export
 plot.core <- function(core,cnm="grip",nm="temp",xlab="Temperature (°C)",ylab="Depth (km)",
                            col=1,bad=NA,ii=NA,lwd=1,convert.y=1e-3,
                            ylim=NULL,xlim=NULL,title=""  )
@@ -2136,7 +1507,6 @@ plot.core <- function(core,cnm="grip",nm="temp",xlab="Temperature (°C)",ylab="D
   box()
 }
 
-#' @export
 plot2d <- function(mask,zs,mar=NA,plt=NA,title="",cex.title=1,asp=0.7,title.loc=c(0.9,0.15),lwd=1,
                    col=c("white","grey40","grey60"),add=TRUE,lab=TRUE,labcex=0.8,interp=FALSE,shade=FALSE)
 {
@@ -2179,7 +1549,6 @@ plot2d <- function(mask,zs,mar=NA,plt=NA,title="",cex.title=1,asp=0.7,title.loc=
   
 }
 
-#' @export
 plot2d.ani <- function(dat, ...) 
 {
   cat("Generating frames:",length(dat$time),"..")

@@ -8,6 +8,7 @@ Description: This package contains all of my custom
     R functions.
 License: GPL-2
 Depends:
+    fields,
     gpclib,
     gridBase,
     maptools,
