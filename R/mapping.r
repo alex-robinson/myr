@@ -256,6 +256,60 @@ gridarea <- function(lon,lat,Re=6371,method="cos")
   return(area)
 }
 
+## GEOID
+#' @export
+geo2zs <- function(geoz,lat=NA)
+{    # Convert from geopotential height to elevation
+     # obtained from: http://www.ofcm.gov/fmh3/text/appendd.htm
+  
+  dd <- dim(geoz)
+  
+  G    <- 9.80665       # Gravitational constant [m/s2]
+  
+  if ( !is.na(lat[1]) ) {
+    a    <- 6378.137e3    # Equatorial radius       [m]
+    b    <- 6356.7523e3   # Polar radius            [m]
+    lat1 <- lat * pi/180  # Latitude converted to radians
+    
+    # Radius of earth at given latitude [m]
+    R_e  <- sqrt( ( (a^2*cos(lat1))^2 + (b^2*sin(lat1))^2 )  /
+                  ( (a*cos(lat1))^2   + (b*sin(lat1))^2 )  )
+
+    # Gravity at latitude [m/s2]
+    g_f  <- G * ( 1 - 0.0026370*cos(2*lat1) + 0.0000059*cos(2*lat1)^2 )
+                      
+                    
+    # Gravity ratio [--]
+    Gr   <- g_f * R_e / G
+
+    # Get the geometric elevation
+    z    <- (geoz * R_e) / (Gr-geoz)
+    
+    #cat(lat, R_e/1d3, geoz, z,"\n")
+  
+  } else {
+    
+    # Divide geopotential height by gravitational constant
+    z    <- geoz / G
+    
+  }
+  
+  ##
+  ##z <- g_f
+  ##
+  
+  dim(z) <- dd
+  
+  return(z)
+
+}
+
+## Earth grid weighting ##
+
+# Surface area of the ocean (km2), as used by Huybrechts & DeWolde 1999: 3.62e8
+#' @export
+Gt2slr <- ( (1e6/1e3) /3.62e8 ) *1000 # 1e6: giga->kg; 1e3: kg/m3 water; SA: m2 area; 1000: m-> mm
+
 #' @export
 mean.areawt <- function(var,area,ii=c(1:length(var)),mask=array(TRUE,dim=dim(var)),na.rm=T,...)
 {
@@ -516,4 +570,253 @@ findpoint <- function(dat,p=c(lat=37.82,lon=-25.73),ebs=3)
   
   return(i1)
 }
+
+#' @export
+grid.interp = function(dat,mask=FALSE,factor=2)
+{
+  # Get the dimensions
+  nx = dim(dat)[1]
+  ny = dim(dat)[2]
+  x = c(1:nx)
+  y = c(1:ny)
+  
+  obj    = list(x=x,y=y,z=dat)
+
+  # Get new x and y coords
+  x1 = seq(1,x[nx],length.out=nx*factor)
+  y1 = seq(1,y[ny],length.out=ny*factor)
+  newgrid = list(x=x1,y=y1)
+  
+  obj1   = interp.surface.grid(obj=obj,grid.list=newgrid)
+  
+  # Add a filter for whether it's a mask or not!!!
+  # Temporary - could make land when ice+water touch!
+  if (mask) { obj1$z <- round(obj1$z)  }
+
+  return(obj1$z)
+}
+
+#' @export
+surface.normal = function(zs)
+{
+  nx <- dim(zs)[1]; ny <- dim(zs)[2]
+  dxx = dyy = dzz = matrix(0,nrow=nx,ncol=ny)
+
+  # Set all vector-z values to 1, since it is pointing away from surface
+  dzz[] = 1
+
+  # Get mean elevation of neighbors, then 
+  # calculate the xy-gradient
+  for ( i in 2:(nx-1) ) {
+    for ( j in 2:(ny-1) ) {
+      
+        zsmean = mean(zs[(i-1):(i+1),(j-1):(j+1)],na.rm=TRUE)
+
+        dx <- c( zs[i,j] - zs[i-1,j  ], zs[i+1,j  ] - zs[i,j] )
+        dy <- c( zs[i,j] - zs[i  ,j-1], zs[i  ,j+1] - zs[i,j] )
+        
+        dx[is.na(dx)] = 0
+        dy[is.na(dy)] = 0
+        
+        dxx[i,j] = mean(dx)
+        dyy[i,j] = mean(dy)
+
+    }
+  }
+
+  # Normalize
+  mag = sqrt(dxx^2+dyy^2+dzz^2)
+  dxx = dxx/mag 
+  dyy = dyy/mag 
+  dzz = dzz/mag
+  
+  sn = array(0,dim=c(nx,ny,3))
+  sn[,,1] = dxx
+  sn[,,2] = dyy
+  sn[,,3] = dzz
+
+  #return(list(dxx=dxx,dyy=dyy,dzz=dzz))
+  return(sn)
+}
+
+#' @export
+surface.normal2 = function(zs)
+{
+  nx <- dim(zs)[1]; ny <- dim(zs)[2]
+  
+  dxx = dyy = dzz = matrix(0,nrow=nx,ncol=ny)
+  
+  dx1 = zs[3:nx,1:ny] - zs[2:(nx-1),1:ny]
+  dx2 = zs[2:(nx-1),1:ny] - zs[1:(nx-2),1:ny]
+  dxx[2:(nx-1),] = (dx1+dx2) / 2
+
+  dy1 = zs[1:nx,3:ny] - zs[1:nx,2:(ny-1)]
+  dy2 = zs[1:nx,2:(ny-1)] - zs[1:nx,1:(ny-2)]
+  dyy[,2:(ny-1)] = (dy1+dy2) / 2
+  
+  # Normalize
+  mag = sqrt(dxx^2+dyy^2+dzz^2)
+  dxx = dxx/mag 
+  dyy = dyy/mag 
+  dzz = dzz/mag
+  
+  sn = array(0,dim=c(nx,ny,3))
+  sn[,,1] = dxx
+  sn[,,2] = dyy
+  sn[,,3] = dzz
+  
+  return(sn)
+
+}
+
+#' @export
+dotprod = function(x,y) return( sum(x*y) )
+
+#' @export
+vec.angle = function(x,y)
+{
+  xm = sqrt(sum(x^2))
+  ym = sqrt(sum(y^2))
+  xy = dotprod(x,y)
+
+  costheta = xy / (xm*ym)
+
+  theta = acos(costheta)
+
+  return(theta*180/pi)
+}
+
+#' @export
+hgrad <- function(xy,dx=20e3)
+{ # xy is 2D field, calculate horizontal gradient vector, dx is grid resolution
+  
+  nx = dim(xy)[1]
+  ny = dim(xy)[2]
+  
+  dudx = xy*NA
+  dudy = xy*NA
+  
+  inv_2dx = 1/(2*dx)
+
+  for (i in 2:(nx-1)) {
+    for (j in 2:(ny-1)) {
+
+      dudx[i,j] = (xy[i+1,j] - xy[i-1,j]) * inv_2dx
+      dudy[i,j] = (xy[i,j+1] - xy[i,j-1]) * inv_2dx
+        
+    }
+  }
+  
+  # Get magnitude too
+  mag = sqrt(dudx^2 + dudy^2)
+
+  return(list(x=dudx,y=dudy,xy=mag))
+}
+
+#' @export
+topo.grad <- function(zs,dx=20,max=TRUE)
+{
+  nx <- dim(zs)[1]; ny <- dim(zs)[2]
+
+  dzs <- matrix(0,nrow=nx,ncol=ny)
+
+  for ( i in 2:(nx-1) ) {
+    for ( j in 2:(ny-1) ) {
+
+      d1 <- zs[i-1,j  ] - zs[i,j]
+      d2 <- zs[i+1,j  ] - zs[i,j]
+      d3 <- zs[i  ,j-1] - zs[i,j]
+      d4 <- zs[i  ,j+1] - zs[i,j]
+
+      dzs[i,j] <- max(abs(c(d1,d2,d3,d4))) / dx
+      if (!max) dzs[i,j] <- mean(c(d1,d2,d3,d4) / dx)
+    }
+  }
+
+  return(dzs)
+}
+
+#' @export
+get.asp <- function(zb,dx=20,mean=FALSE)
+{
+  
+  dzb <- zb*0
+  
+  nx <- dim(zb)[1]; ny <- dim(zb)[2]
+  
+  for ( i in 2:(nx-1) ) {
+    for ( j in 2:(ny-1) ) {
+      
+      dz <- c( zb[i,j] - zb[i-1,j],
+               zb[i,j] - zb[i+1,j],
+               zb[i,j] - zb[i,j-1],
+               zb[i,j] - zb[i,j+1] )
+      
+      if (mean) {
+        dz <- mean(abs(dz)) / dx
+      } else {
+        dz <- max(abs(dz)) / dx
+      }
+      
+      dzb[i,j] <- dz
+    }
+  }
+  
+  return(dzb)
+}
+
+#' @export
+get.curvature <- function(zs,dx=20,n=1)
+{ # mean curvature
+  # (from: Park et al, 2001)
+  # http://casoilresource.lawr.ucdavis.edu/drupal/node/937
+
+  dists = array(1,dim=c(n*2+1,n*2+1))
+  for (i in 1:nrow(dists)) {
+    for (j in 1:ncol(dists)) {
+      dists[i,j] = sqrt( (dx*((n+1)-i))^2 + (dx*((n+1)-j))^2 )
+    }
+  }
+  qq = which(dists != 0)
+
+  czs = zs*NA
+
+  nx = nrow(czs)
+  ny = ncol(czs)
+
+  for ( i in (1+n):(nx-n)) {
+    for ( j in (1+n):(ny-n)) {
+
+      neighbs = zs[(i-n):(i+n),(j-n):(j+n)]
+      
+      czs[i,j] = sum((neighbs[qq]-zs[i,j])/dists[qq]) / length(qq)
+    }
+  }
+
+  return(czs)
+}
+
+#' @export
+get.Lfac <- function(asp)
+{ # From Surenda's poster
+  
+  Lfac <- -0.7*asp^2 - 0.18*asp + 1.0
+  return(Lfac)
+}
+
+#' @export
+filter.grid <- function(data,dx,dx1)
+{
+  
+  dim0 <- dim(data)
+  dim1 <- (dim0-1)*dx/dx1 + 1
+
+  ii <- seq( from=0,by=dx1/dx,length.out=dim1[1]) + 1
+  jj <- seq( from=0,by=dx1/dx,length.out=dim1[2]) + 1
+  
+  # Reduced grid to filtered points
+  data1 <- data[ii,jj]
+
+  return(data1)
+} 
 

@@ -9,6 +9,7 @@ Description: This package contains all of my custom
 License: GPL-2
 Depends:
     gpclib,
+    gridBase,
     maptools,
     ncdf,
     rgeos,
