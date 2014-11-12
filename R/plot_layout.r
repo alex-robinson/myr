@@ -4,14 +4,15 @@ myfigure <- function(fldr=".",file="Rplot",date=TRUE,type="pdf",engine="cairo",
                      width=NULL,height=NULL,units="mm",asp=1,pointsize=12,res=300,
                      cex=1,cex.lab=1,cex.axis=1,bg="white",onefile=TRUE)
 {
-  
+    # Some system settings
+    host  = system("hostname",intern=TRUE)
+    os    = system("uname",intern=TRUE)
+    today = format(Sys.time(),"%Y-%m-%d")
+
     # Make filename
     file = paste(file,".",type,sep="")
     if (date == TRUE) file = paste(today,"_",file,sep="")
     file = file.path(fldr,file)
-
-    host = system("hostname",intern=TRUE)
-    os   = system("uname",intern=TRUE)
 
     # If running on a mac, make sure engine is quartz!
     if ( os == "Darwin" ) engine = "quartz"

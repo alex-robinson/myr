@@ -15,7 +15,7 @@ shadowtext <- function(x, y=NULL, labels, col='white', bg='black',
 }
 
 #' @export
-format_r2 <- function(fit,digits=2)
+format_r2 <- function(fit,digits=2,units="")
 { # return the r^2 value ready for plotting
   r2 = summary(fit)$adj.r.squared
   myr2 = bquote(r^2 == .(format(r2, digits = 2)))
