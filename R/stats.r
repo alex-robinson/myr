@@ -67,10 +67,16 @@ standardize <- function(pres,ibase=c(1:length(pres)))
 }
 
 #' @export
-derivative <- function(x,y)
+derivative <- function(x,y,L=NULL)
 {
     dy = c(NA,diff(y)/diff(x))
     dy[1] = dy[2]
+
+    if (!is.null(L)) {  # Smooth the result using loess where L is window half-length
+        npts = (L*2+1)/diff(x)[1]
+        dy = predict(loess(dy~x,span=npts/length(x)))
+    }
+
     return(dy)
 }
 

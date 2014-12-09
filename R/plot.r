@@ -56,36 +56,43 @@ col.grad <- function(zs,ltheta=-135,lphi=20)
 }
 
 #' @export
-add_shade <- function(zs,plot=TRUE)
+add_shade <- function(x,y,z,plot=TRUE,max=40)
 {
+
   cat("Calculating contour shading...")
-  colshift = col.grad(zs)
-  colshade=rgb(1,1,1,seq(0,40,length.out=100),maxColorValue=100)
+  colshift = col.grad(z)
+  colshade=rgb(1,1,1,seq(0,max,length.out=100),maxColorValue=100)
   cat("done.\n")
   
-  if (plot) image(colshift,col=colshade,add=T)
+  if (plot) image(x=x,y=y,z=colshift,col=colshade,add=TRUE)
 
-  return(list(level=colshift,col=colshade)) 
+  return(list(x=x,y=y,level=colshift,col=colshade)) 
 }
 
 #' @export
-test.shading <- function(zs,var=NULL)
+test.shading <- function(zs,var=NULL,breaks=NULL,col=NULL,col.cont=NULL)
 {
+  zs[zs<0] = 0 
 
   shade = add_shade(zs,plot=FALSE)
 
   elev = get.contours("zs")
-  image.plot(a$zs,breaks=elev$at,col=elev$cols)
+  image(zs,breaks=elev$at,col=elev$cols)
   image(shade$level,col=shade$col,add=T)
   
-  breaks = pretty(range(var,na.rm=T),50)
-  cols   = colorRampPalette(jet.colors)(length(breaks)-1)
-  cols = alpha(cols,65)
-  if (!is.null(var)) image(var,add=T,breaks=breaks,col=cols)
-  
-  contour(a$zs,add=T,levels=seq(0,3500,by=250),drawlabels=FALSE,col="grey50")
-  contour(a$zs,add=T,levels=c(2500),drawlabels=FALSE,col="grey50",lwd=3)
+  if (!is.null(var)) {
+    if (is.null(breaks)) breaks = pretty(range(var,na.rm=TRUE),50)
+    cols = col 
+    if (is.null(cols)) cols = colorRampPalette(jet.colors)(length(breaks)-1)
+    if (length(cols) != (length(breaks)-1)) cols = colorRampPalette(cols)(length(breaks)-1)
+    cols = alpha(cols,65)
+    image(var,add=T,breaks=breaks,col=cols)
+  }
 
+  if (!is.null(col.cont)) {
+    contour(zs,add=T,levels=seq(0,3500,by=250),drawlabels=FALSE,col=alpha(col.cont,50),lwd=0.5)
+    contour(zs,add=T,levels=c(2500),drawlabels=FALSE,col=alpha(col.cont,50),lwd=1.5)
+  }
 }
 
 ###############
