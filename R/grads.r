@@ -1,118 +1,32 @@
 
 
 ## LOADING BINARY (GRADS) FILES
-# ----------------------------------------------------------------------
-# Function: get.ctl
-# Author  : Alex Robinson
-# Purpose : Get info from a ctl file
-# ----------------------------------------------------------------------
-get.ctl <- function(fnm="clima.ctl")
-{
 
-  ctl <- system(paste("/home/robinson/python/sico/embfunctions.py",fnm),intern=TRUE)
-  ctl <- strsplit(ctl," ")[[1]]
-
-  gx = ctl[1]
-  nx = as.integer(ctl[2])
-  x0 = as.double(ctl[3])
-  dx = as.double(ctl[4])
-  ny = as.integer(ctl[5])
-  y0 = as.double(ctl[6])
-  dy = as.double(ctl[7])
-
-  nvar = as.integer(ctl[8])
-  vnms = ctl[9:length(ctl)]
-
-  x = seq(from=x0,to=x0+(nx-1)*dx,by=dx)
-  y = seq(from=y0,to=y0+(ny-1)*dy,by=dy)
-
-  return(list(gx=gx,vnms=vnms,nvar=nvar,nxny=c(nx,ny),x=x,y=y))
-}
-
-# ----------------------------------------------------------------------
-# Function: get.binary
-# Author  : Alex Robinson
-# Purpose : Get data from a binary output file
-# ----------------------------------------------------------------------
-get.binary <- function(fldr=".",gx="cntro.clima.gx",ctl="na",nx=151,ny=281,nk=1)
-{
-
-  if (ctl != "na") {
-    ctl  <- get.ctl(file.path(fldr,ctl))
-
-    gx   <- ctl$gx
-    nvar <- ctl$nvar
-    nx   <- ctl$nxny[1]
-    ny   <- ctl$nxny[2]
-
-    vnms <- ctl$vnms
-
-  } else {
-    nvar = length(vnms)
-  }
-
-  ndat = nx*ny
-  newdata <- file(file.path(fldr,gx), "rb")
-  datavals <- readBin(newdata, real(), size = 4, n = nvar*ndat*nk, endian = "little")
-  close(newdata)
-
-  cat("\n Loaded: ",file.path(fldr,gx),"\n")
-
-
-  # Currently nk is not handled, also output should be in an array
-  #var <- array(datvals,c(nx,ny,nk,nvar)
-
-  var <- list()
-
-  if (nk == 1) {
-
-    # Obtain list of 2d variables
-    for (q in 1:nvar)
-    {
-      i0 <- (q-1)*ndat + 1
-      i1 <- i0 + ndat - 1
-      var[[q]] <- matrix(datavals[i0:i1],nrow=nx,ncol=ny)
-    }
-
-    names(var) <- vnms
-
-  } else {
-
-    # Obtain list through time of list of 2d variables
-    for (k in 1:nk) {
-
-      var[[k]] <- list()
-
-      for (q in 1:nvar)
-      {
-        i0 <- (k-1)*ndat*nvar + (q-1)*ndat + 1
-        i1 <- i0 + ndat - 1
-        var[[k]][[q]] <- matrix(datavals[i0:i1],nrow=nx,ncol=ny)
-      }
-
-      names(var[[k]]) <- vnms
-    }
-
-  }
-
-  return(var)
-}
 
 ## Load 1d binary file
-get.binary2 <- function(fldr="/scratch/01/andrey/PPSCM",ctl="grads/history.ctl",file="OUT/history.dat",n=3)
+#' @export
+load_grads1D <- function(fldr="/scratch/01/andrey/PPSCM",ctl="grads/history.ctl",file="OUT/history.dat",n=NULL)
 {
   ## Load variable names from CTL file
   ctl <- scan(file.path(fldr,ctl),what="character",sep="\n")
   ctl <- strsplit(ctl,split=" ")
   nms <- vector(mode="character")
   vars <- FALSE
+  nt = NULL 
   for ( i in 1:length(ctl)) {
     s <- ctl[[i]][1]
     if ( s == "ENDVARS" )vars <- FALSE
     if ( vars ) nms <- c(nms,s)
     if ( s == "VARS" ) vars <- TRUE
+
+    if (s == "TDEF") nt = as.integer(ctl[[i]][which(ctl[[i]]!="")][2])
+
   }
   
+  # Use time steps from file if n is not given
+  if (is.null(n) & !is.null(nt)) n = nt 
+  time = c(1:n)
+
   # Determine total number of variables
   nvar <- length(nms)
   
@@ -124,28 +38,37 @@ get.binary2 <- function(fldr="/scratch/01/andrey/PPSCM",ctl="grads/history.ctl",
   
   dat <- as.data.frame(t(array(datavals,dim=c(nvar,n))))
   names(dat) <- nms
-  
+  dat$time = time 
+
   cat("\n Loaded: ",file.path(fldr,file),"\n")
   
   return(dat)
 }
 
 ## Load 1d/2d/3d binary file
-get.binary3 <- function(fldr="/scratch/01/andrey/PPSCM",ctl="grads/history.ctl",file="OUT/history.dat",
-                        n=3,nx=NA,ny=NA,mynms=c("ma","zs","zb","b"))
+#' @export
+load_grads <- function(fldr="/scratch/01/andrey/PPSCM",ctl="grads/history.ctl",file="OUT/history.dat",
+                        n=NULL,nx=NA,ny=NA,mynms=c("ma","zs","zb","b"))
 {
   ## Load variable names from CTL file
   ctl <- scan(file.path(fldr,ctl),what="character",sep="\n")
   ctl <- strsplit(ctl,split=" ")
   nms <- vector(mode="character")
   vars <- FALSE
+  nt = NULL
   for ( i in 1:length(ctl)) {
     s <- ctl[[i]][1]
     if ( s == "ENDVARS" )vars <- FALSE
     if ( vars ) nms <- c(nms,s)
     if ( s == "VARS" ) vars <- TRUE
+
+    if (s == "TDEF") nt = as.integer(ctl[[i]][which(ctl[[i]]!="")][2])
   }
   
+  # Use time steps from file if n is not given
+  if (is.null(n) & !is.null(nt)) n = nt 
+  time = c(1:n)
+
   # Determine total number of variables and data fields
   nvar <- length(nms)
   nt   <- n
@@ -154,7 +77,7 @@ get.binary3 <- function(fldr="/scratch/01/andrey/PPSCM",ctl="grads/history.ctl",
   ## Done loading variable names
   
   newdata <- file(file.path(fldr,file), "rb")
-  datavals <- readBin(newdata, real(), size = 4, n = nt*ntot, endian = "little")
+  datavals <- readBin(newdata, "double", size = 4, n = nt*ntot, endian = "little")
   close(newdata)
   
   if ( is.na(nx) ) {  # 0D (time series)
@@ -187,6 +110,8 @@ get.binary3 <- function(fldr="/scratch/01/andrey/PPSCM",ctl="grads/history.ctl",
     
   }
 
+  dat$time = time 
+    
   cat("\n Loaded: ",file.path(fldr,file),"\n")
   
   return(dat)
