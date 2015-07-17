@@ -1,5 +1,5 @@
 
-
+#' @export
 plot_icesheet <- function(x,y,z,mask,zb=z*0,add=FALSE,col.cont=alpha("darkcyan",50),
                           xlim=range(x),ylim=range(y))
 {
@@ -47,6 +47,7 @@ plot_icesheet <- function(x,y,z,mask,zb=z*0,add=FALSE,col.cont=alpha("darkcyan",
 
 }
 
+#' @export
 points_cores <- function(corep,cex=corep$cex)
 {
     i0 = which(corep$name == "neem")

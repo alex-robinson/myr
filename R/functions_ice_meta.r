@@ -1,6 +1,6 @@
 
 
-
+#' @export
 calc_core_meta = function(core,time_range,conv_time=1)
 {
     meta = list()
@@ -108,6 +108,7 @@ calc_core_meta = function(core,time_range,conv_time=1)
     return(meta)
 }
 
+#' @export
 calc_series_meta = function(time,var,time_range)
 {
     nsim = dim(var)[1]
@@ -146,6 +147,7 @@ calc_series_meta = function(time,var,time_range)
     return(out)
 }
 
+#' @export
 calc_sealevel = function(time,Vtot,dVdt,Vtot0=3.7,z_sle_pd=7.3)
 {   
     # Define conversion constant (Gt => sle; Gt/a => slr)
