@@ -65,3 +65,23 @@ get.col = function(x,col=c("blue","red"),n=20,mid=NA,extend=10,ii=c(1:length(x))
   cols[jj] = NA
   return(list(breaks=breaks,palette=palette,col=cols))
 }
+
+#' @export
+get_col = function(x,col=c("blue","red"),n=20,xlim=range(x,na.rm=TRUE))
+{
+  nx    = length(x)
+  dxlim = diff(xlim)
+
+  breaks = pretty(xlim,n)
+  db = diff(breaks)[1]
+  nb = length(breaks)
+
+  palette = colorRampPalette(col)(nb-1)
+  cols = rep("black",nx)
+  for ( i in 1:nx ) {
+    j = which.min( abs(x[i] - (breaks[1:(nb-1)]+db/2)) )
+    if ( length(j)==1 ) cols[i] = palette[j]
+  }
+  
+  return(list(breaks=breaks,palette=palette,col=cols))
+}
