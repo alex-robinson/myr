@@ -7,6 +7,9 @@ source("plot_layout.r")
 source("plots_text.r")
 source("colors.r")
 
+# Geospatial processing 
+source("mapping.r")
+
 # Data processing
 source("stats.r")
 source("filters.r")
