@@ -12,6 +12,5 @@ Depends:
     gpclib,
     gridBase,
     maptools,
-    ncdf,
-    rgeos,
-    Rssa
+    rgeos
+RoxygenNote: 6.0.1

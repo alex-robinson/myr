@@ -13,10 +13,9 @@ source("mapping.r")
 # Data processing
 source("stats.r")
 source("filters.r")
-source("functions_series.r")
+#source("functions_series.r")
 
 # Data management
-source("functions_ncdf.r")
 # source("functions_grads.r")
 # source("functions_esrl.r")
 

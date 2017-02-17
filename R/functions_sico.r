@@ -657,7 +657,7 @@ save.rcmdata <- function()
   ama.rac <- conv* cma.rac / nd
   
   # Load yearly melt data (2D)
-  dat <- get.nc("../rcms/MAR-RACMO2-SAT_melt_extent.nc")
+  dat <- read.nc("../rcms/MAR-RACMO2-SAT_melt_extent.nc")
   
   # MAR
   mar1b <- load.rcmdata(file="../rcms/RCMGCM_mar.era40.txt",trange.base=c(1958,2001))                         
