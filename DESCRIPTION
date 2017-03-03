@@ -12,5 +12,6 @@ Depends:
     gpclib,
     gridBase,
     maptools,
-    rgeos
+    rgeos,
+    RNetCDF
 RoxygenNote: 6.0.1

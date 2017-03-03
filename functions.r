@@ -16,6 +16,7 @@ source("filters.r")
 #source("functions_series.r")
 
 # Data management
+source("netcdf.r")
 # source("functions_grads.r")
 # source("functions_esrl.r")
 
