@@ -1,17 +1,32 @@
 
+# #' @export
+# plot_vel <- function(x,y,z)
+# {
+
+    
+# }
+
 #' @export
 plot_icesheet <- function(x,y,z,mask,zb=z*0,add=FALSE,col.cont=alpha("darkcyan",50),
                           xlim=range(x),ylim=range(y))
-{
+{   # Currently defined for mask values from sicopolis(!!)
+
     zs = z
     zs[zs<0] = NA 
 
     zs_ocean = zb
     zs_land  = z
     zs_ice   = z 
-    zs_ocean[mask!=2] = NA  
-    zs_land[mask!=1]  = NA  
-    zs_ice[mask!=0]   = NA 
+    
+    # Sicopolis
+    # zs_ocean[mask!=2] = NA  
+    # zs_land[mask!=1]  = NA  
+    # zs_ice[mask!=0]   = NA 
+
+    # Grisli
+    zs_ocean[mask!=0] = NA 
+    zs_land[mask!=1]  = NA 
+    zs_ice[!mask%in%c(2,3,4,5)] = NA 
 
     breaks_ocean = pretty(range(zs_ocean,na.rm=TRUE),50)
     cols_ocean   = colorRampPalette(c("grey60","grey95"),bias=0.3)(length(breaks_ocean)-1)
