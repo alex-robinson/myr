@@ -8,7 +8,7 @@ source("plots_text.r")
 source("colors.r")
 
 # Geospatial processing 
-source("mapping.r")
+#source("mapping.r")
 
 # Data processing
 source("stats.r")
@@ -22,9 +22,9 @@ source("netcdf.r")
 
 
 # Specific functions for paleo data 
-source("functions_paleo.r")
+#source("functions_paleo.r")
 
 # Specific functions for ice sheet modeling
-source("functions_ice_meta.r")
-source("functions_ice_plotting.r")
+#source("functions_ice_meta.r")
+#source("functions_ice_plotting.r")
 
