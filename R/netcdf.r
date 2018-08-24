@@ -1,7 +1,7 @@
 library(RNetCDF)
 
 #' @export
-my.read.nc = function(filename,verbose=TRUE)
+my.read.nc = function(filename,verbose=FALSE)
 {
     nc = open.nc(filename)
     
