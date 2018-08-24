@@ -13,7 +13,7 @@ source("colors.r")
 # Data processing
 source("stats.r")
 source("filters.r")
-#source("functions_series.r")
+source("series.r")
 
 # Data management
 source("netcdf.r")
