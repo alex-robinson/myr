@@ -85,6 +85,7 @@ myfigure <- function(fldr=".",file="Rplot",date=TRUE,type="pdf",engine="cairo",
     return(win)
 }
 
+#' @export
 mylegend_internal <- function(breaks,col,units="mm",x=c(0,1),y=c(0,1),at=NULL,labels=NULL,
                      xlab="",ylab="",xlim=NULL,ylim=NULL,zlim=range(breaks),
                      cex=1,cex.lab=1,new=FALSE,extend=FALSE,vertical=TRUE,line=1.8,
@@ -127,13 +128,13 @@ mylegend_internal <- function(breaks,col,units="mm",x=c(0,1),y=c(0,1),at=NULL,la
       # Add triangles to ends of legend to indicate extended range
         if (vertical) {
             par(xpd=TRUE)
-            polygon(c(0,1,0.5),c(0,0,0-0.05),col=col[1])
-            polygon(c(0,1,0.5),c(1,1,1+0.05),col=col[n-1])
+            polygon(c(0,1,0.5),c(0,0,0-0.05),border=col.axis,col=col[1])
+            polygon(c(0,1,0.5),c(1,1,1+0.05),border=col.axis,col=col[n-1])
             par(xpd=NA)
         } else {
             par(xpd=TRUE)
-            polygon(c(0,0,0-0.05),c(0,1,0.5),col=col[1])
-            polygon(c(1,1,1+0.05),c(0,1,0.5),col=col[n-1])
+            polygon(c(0,0,0-0.05),c(0,1,0.5),border=col.axis,col=col[1])
+            polygon(c(1,1,1+0.05),c(0,1,0.5),border=col.axis,col=col[n-1])
             par(xpd=NA)
         }
     }
@@ -149,6 +150,17 @@ mylegend_internal <- function(breaks,col,units="mm",x=c(0,1),y=c(0,1),at=NULL,la
     par(xpd=FALSE)
 }
 
+#' @export
+mylegend = function(breaks,col,...,extend=FALSE,evenspacing=FALSE)
+{
+    
+    if (evenspacing) {
+        breaks0 = seq(from=0,to=1,length.out=length(breaks))
+        mylegend_internal(breaks=breaks0,col=col,at=breaks0,labels=paste(breaks),extend=extend,...)
+    } else {
+        mylegend_internal(breaks,col,extend=extend,...)
+    }
+}
 #' @export
 my.par  <- function(mar=c(3.2,3.3,1,1),xaxs="i",yaxs="i",tcl=0.4,mgp=c(2.5,0.3,0),las=1,...)
 {
@@ -190,29 +202,6 @@ my.axis <- function(side=1,at=NULL,tcl=0.4,mgp=c(2.5,0.25,0),minticks=2,grid=FAL
 
   return(at.min)
 }
-
-#' @export
-mylegend = function(...,evenspacing=FALSE)
-{
-    
-    if (evenspacing) {
-        breaks0 = seq(from=0,to=1,length.out=length(breaks))
-        mylegend_internal(breaks0,col,at=breaks0,labels=paste(breaks))
-    } else {
-        mylegend_internal(...)
-    }
-}
-
-# mylegend = function(...,extend=FALSE,evenspacing=FALSE)
-# {
-    
-#     if (evenspacing) {
-#         breaks0 = seq(from=0,to=1,length.out=length(breaks))
-#         mylegend_internal(breaks0,col,at=breaks0,labels=paste(breaks),extend=extend)
-#     } else {
-#         mylegend_internal(...,extend=extend)
-#     }
-# }
 
 #' @export
 myplot <- function(...,axes=c(1,2,3,4),box=TRUE,grid=TRUE,
