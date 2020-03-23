@@ -85,10 +85,9 @@ myfigure <- function(fldr=".",file="Rplot",date=TRUE,type="pdf",engine="cairo",
     return(win)
 }
 
-#' @export
-mylegend <- function(breaks,col,units="mm",x=c(0,1),y=c(0,1),at=NULL,labels=NULL,
+mylegend_internal <- function(breaks,col,units="mm",x=c(0,1),y=c(0,1),at=NULL,labels=NULL,
                      xlab="",ylab="",xlim=NULL,ylim=NULL,zlim=range(breaks),
-                     cex=1,cex.lab=1,new=TRUE,vertical=TRUE,line=1.8,
+                     cex=1,cex.lab=1,new=FALSE,extend=FALSE,vertical=TRUE,line=1.8,
                      asp=1,mgp=c(3,0.5,0),col.axis="grey10",...)
 {
     n      = length(breaks)    
@@ -123,6 +122,21 @@ mylegend <- function(breaks,col,units="mm",x=c(0,1),y=c(0,1),at=NULL,labels=NULL
     par(new=new,xpd=NA,xaxs="i",yaxs="i",...)
     plot( xlim0,ylim0, type="n",axes=F,ann=F,cex=cex)
     rect(x0,y0,x1,y1,col=col,border=col,lwd=1)
+
+    if (extend) {
+      # Add triangles to ends of legend to indicate extended range
+        if (vertical) {
+            par(xpd=TRUE)
+            polygon(c(0,1,0.5),c(0,0,0-0.05),col=col[1])
+            polygon(c(0,1,0.5),c(1,1,1+0.05),col=col[n-1])
+            par(xpd=NA)
+        } else {
+            par(xpd=TRUE)
+            polygon(c(0,0,0-0.05),c(0,1,0.5),col=col[1])
+            polygon(c(1,1,1+0.05),c(0,1,0.5),col=col[n-1])
+            par(xpd=NA)
+        }
+    }
 
     par(new=TRUE,xpd=NA,xaxs="i",yaxs="i",...)
     plot(xlim,ylim,type="n",axes=F,ann=F,cex=cex)
@@ -178,7 +192,30 @@ my.axis <- function(side=1,at=NULL,tcl=0.4,mgp=c(2.5,0.25,0),minticks=2,grid=FAL
 }
 
 #' @export
-my.plot <- function(...,axes=c(1,2,3,4),box=TRUE,grid=TRUE,
+mylegend = function(...,evenspacing=FALSE)
+{
+    
+    if (evenspacing) {
+        breaks0 = seq(from=0,to=1,length.out=length(breaks))
+        mylegend_internal(breaks0,col,at=breaks0,labels=paste(breaks))
+    } else {
+        mylegend_internal(...)
+    }
+}
+
+# mylegend = function(...,extend=FALSE,evenspacing=FALSE)
+# {
+    
+#     if (evenspacing) {
+#         breaks0 = seq(from=0,to=1,length.out=length(breaks))
+#         mylegend_internal(breaks0,col,at=breaks0,labels=paste(breaks),extend=extend)
+#     } else {
+#         mylegend_internal(...,extend=extend)
+#     }
+# }
+
+#' @export
+myplot <- function(...,axes=c(1,2,3,4),box=TRUE,grid=TRUE,
                     xlab="",ylab="",xline=1.7,yline=1.9,
                     minticks=2)
 {
@@ -199,12 +236,12 @@ my.plot <- function(...,axes=c(1,2,3,4),box=TRUE,grid=TRUE,
 }
 
 #' @export
-plot.blank <- function(mar=NA)   
+plotblank <- function(mar=NA)   
 { ## plot an empty space, in which text can be added
-  def.par <- par(no.readonly=TRUE)
-  if (is.na(mar[1])) mar <- c(1,1,1,1)
-  par(mar=mar)
+  #def.par <- par(no.readonly=TRUE)
+  #if (is.na(mar[1])) mar <- c(1,1,1,1)
+  #par(mar=mar)
   plot(c(0,1),c(0,1),type="n",axes=FALSE, xlab="", ylab="")
   
-  par(def.par$mar) # return to normal
+  #par(def.par$mar) # return to normal
 }
