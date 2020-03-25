@@ -86,7 +86,7 @@ myfigure <- function(fldr=".",file="Rplot",date=TRUE,type="pdf",engine="cairo",
 }
 
 #' @export
-mylegend_internal <- function(breaks,col,units="mm",x=c(0,1),y=c(0,1),at=NULL,labels=NULL,
+mylegend_internal <- function(breaks,col,units="mm",x=c(0,1),y=c(0,1),at=breaks,labels=NULL,
                      xlab="",ylab="",xlim=NULL,ylim=NULL,zlim=range(breaks),
                      cex=1,cex.lab=1,new=FALSE,extend=FALSE,vertical=TRUE,line=1.8,
                      asp=1,mgp=c(3,0.5,0),col.axis="grey10",...)
@@ -151,12 +151,12 @@ mylegend_internal <- function(breaks,col,units="mm",x=c(0,1),y=c(0,1),at=NULL,la
 }
 
 #' @export
-mylegend = function(breaks,col,...,extend=FALSE,evenspacing=FALSE)
+mylegend = function(breaks,col,...,labels=paste(breaks),extend=FALSE,evenspacing=FALSE)
 {
     
     if (evenspacing) {
         breaks0 = seq(from=0,to=1,length.out=length(breaks))
-        mylegend_internal(breaks=breaks0,col=col,at=breaks0,labels=paste(breaks),extend=extend,...)
+        mylegend_internal(breaks=breaks0,col=col,at=breaks0,labels=labels,extend=extend,...)
     } else {
         mylegend_internal(breaks,col,extend=extend,...)
     }
