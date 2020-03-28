@@ -158,7 +158,7 @@ mylegend = function(breaks,col,...,labels=paste(breaks),extend=FALSE,evenspacing
         breaks0 = seq(from=0,to=1,length.out=length(breaks))
         mylegend_internal(breaks=breaks0,col=col,at=breaks0,labels=labels,extend=extend,...)
     } else {
-        mylegend_internal(breaks,col,extend=extend,...)
+        mylegend_internal(breaks,col,labels=labels,extend=extend,...)
     }
 }
 #' @export
