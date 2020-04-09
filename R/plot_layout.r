@@ -124,17 +124,17 @@ mylegend_internal <- function(breaks,col,units="mm",x=c(0,1),y=c(0,1),at=breaks,
     plot( xlim0,ylim0, type="n",axes=F,ann=F,cex=cex)
     rect(x0,y0,x1,y1,col=col,border=col,lwd=1)
 
-    if (extend) {
+    if (extend != 0) {
       # Add triangles to ends of legend to indicate extended range
         if (vertical) {
             par(xpd=TRUE)
-            polygon(c(0,1,0.5),c(0,0,0-0.05),border=col.axis,col=col[1])
-            polygon(c(0,1,0.5),c(1,1,1+0.05),border=col.axis,col=col[n-1])
+            if (extend %in% c(2,-1)) polygon(c(0,1,0.5),c(0,0,0-0.05),border=col.axis,col=col[1])
+            if (extend %in% c(2, 1)) polygon(c(0,1,0.5),c(1,1,1+0.05),border=col.axis,col=col[n-1])
             par(xpd=NA)
         } else {
             par(xpd=TRUE)
-            polygon(c(0,0,0-0.05),c(0,1,0.5),border=col.axis,col=col[1])
-            polygon(c(1,1,1+0.05),c(0,1,0.5),border=col.axis,col=col[n-1])
+            if (extend %in% c(2,-1)) polygon(c(0,0,0-0.05),c(0,1,0.5),border=col.axis,col=col[1])
+            if (extend %in% c(2, 1)) polygon(c(1,1,1+0.05),c(0,1,0.5),border=col.axis,col=col[n-1])
             par(xpd=NA)
         }
     }
@@ -151,7 +151,7 @@ mylegend_internal <- function(breaks,col,units="mm",x=c(0,1),y=c(0,1),at=breaks,
 }
 
 #' @export
-mylegend = function(breaks,col,...,labels=paste(breaks),extend=FALSE,evenspacing=FALSE)
+mylegend = function(breaks,col,...,labels=paste(breaks),extend=0,evenspacing=FALSE)
 {
     
     if (evenspacing) {
