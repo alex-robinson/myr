@@ -99,7 +99,8 @@ resample = function(x,y,xout,dtmax=NULL)
 #' @export
 my.hist <- function(hi,freq=TRUE,b=FALSE,col='grey95',border='grey70',lwd=1,lty=1,filled="standard")
 {
-  
+  cat("myr:: Note that my.hist is deprecated. Please use myhist().","\n")
+
   x  <- hi$mids
   x2 <- hi$breaks
   y  <- hi$counts
@@ -135,6 +136,34 @@ my.hist <- function(hi,freq=TRUE,b=FALSE,col='grey95',border='grey70',lwd=1,lty=
   # polygon(hi$density.call,col=col,border=border,lwd=lwd,lty=lty)
   #polygon(c(x[1],x,x[length(x)]),c(0,y,0),col=col,border=border,lwd=lwd,lty=lty)
 
+}
+
+## Adding histogram to a plot bug fixes
+#' @export
+myhist = function (hi,freq=TRUE,col="grey95",border="grey70",lwd=1,lty=1,vertical.lines=TRUE) 
+{
+    x = hi$mids
+    x2 = hi$breaks
+    y = hi$counts
+    if (!freq) y = hi$density
+    n = length(x2)
+    xfill = c(x2[1], x2[1])
+    yfill = c(0, y[1])
+    for (i in 2:(n-1)) {
+        xfill = c(xfill,  x2[i], x2[i])
+        yfill = c(yfill, y[i-1],  y[i])
+    }
+    xfill = c(xfill,  x2[n], x2[n])
+    yfill = c(yfill, y[n-1], 0)
+
+    polygon(xfill,yfill,col=col,border=NA)
+    lines(xfill,yfill,col=border,lwd=lwd,lty=lty)
+
+    if (vertical.lines) {
+      # Include vertical lines separating bins
+      segments(x0=x2[2:n],y0=0,x1=x2[2:n],y1=y,col=border,lwd=lwd*0.5,lty=lty)
+    }
+    
 }
 
 #' @export
